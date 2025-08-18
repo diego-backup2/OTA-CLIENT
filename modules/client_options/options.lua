@@ -66,8 +66,6 @@ local defaultOptions = {
 
   actionbarLock = false,
 
-  profile = 1,
-
   antialiasing = true,
   floorShadow = true,
 
@@ -725,10 +723,6 @@ function setOption(key, value, force)
   g_settings.set(key, value)
   options[key] = value
 
-  if key == "profile" then
-    modules.client_profiles.onProfileChange()
-  end
-
   if key == "classicView" or key == "rightPanels" or key == "leftPanels" or key == "cacheMap" then
     modules.game_interface.refreshViewMode()
   elseif key:find("actionbar") then
@@ -832,13 +826,21 @@ end
 -- hide/show
 function online()
   keybindsPanel.buttons.newAction:enable()
-
+  
   setLightOptionsVisibility(not g_game.getFeature(GameForceLight))
+  
+  local firstLogin = false
+  local name = g_game.getCharacterName()
+
+  if Keybind.newPreset(name) then
+    keybindsPanel.presets.list:addOption(name)
+    keybindsPanel.presets.list:setCurrentOption(name)
+    firstLogin = true
+  end
 
   g_app.setSmooth(g_settings.getBoolean("antialiasing"))
 
-  if g_settings.getBoolean("autoSwitchPreset") then
-    local name = g_game.getCharacterName()
+  if g_settings.getBoolean("autoSwitchPreset") or firstLogin then
     if Keybind.selectPreset(name) then
       keybindsPanel.presets.list:setCurrentOption(name, true)
 

@@ -83,26 +83,31 @@ OptionPanel
 
     ComboBox
       id: list
+      visible: false
       width: 330
 
     SmallButton
       id: add
       width: 30
+      visible: false
       !text: tr("Add")
 
     SmallButton
       id: copy
       width: 35
+      visible: false
       !text: tr("Copy")
 
     SmallButton
       id: rename
       width: 45
+      visible: false
       !text: tr("Rename")
 
     SmallButton
       id: remove
       width: 45
+      visible: false
       !text: tr("Remove")
   
   OptionCheckBox

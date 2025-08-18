@@ -45,14 +45,30 @@ HOTKEY_ACTION = {
   SPELL = 8
 }
 
+local function getHotkeysFile(preset)
+  if not g_resources.directoryExists("/profiles/" .. preset) then
+    g_resources.makeDir("/profiles/" .. preset)
+  end
+
+  return "/profiles/" .. preset .. "/hotkeys.otml"
+end
+
+local function getKeybindsFile(preset)
+  if not g_resources.directoryExists("/profiles/" .. preset) then
+    g_resources.makeDir("/profiles/" .. preset)
+  end
+
+  return "/profiles/" .. preset .. "/keybinds.otml"
+end
+
 function Keybind.init()
   connect(g_game, { onGameStart = Keybind.online, onGameEnd = Keybind.offline })
 
   Keybind.presets = g_settings.getList("controls-presets")
 
   if #Keybind.presets == 0 then
-    Keybind.presets = { "Druid", "Knight", "Paladin", "Sorcerer" }
-    Keybind.currentPreset = "Druid"
+    Keybind.presets = { "Default" }
+    Keybind.currentPreset = Keybind.presets[1]
   else
     Keybind.currentPreset = g_settings.getValue("controls-preset-current")
   end
@@ -61,21 +77,9 @@ function Keybind.init()
     Keybind.presetToIndex[preset] = index
   end
 
-  if not g_resources.directoryExists("/controls") then
-    g_resources.makeDir("/controls")
-  end
-
-  if not g_resources.directoryExists("/controls/keybinds") then
-    g_resources.makeDir("/controls/keybinds")
-  end
-
-  if not g_resources.directoryExists("/controls/hotkeys") then
-    g_resources.makeDir("/controls/hotkeys")
-  end
-
   for _, preset in ipairs(Keybind.presets) do
-    Keybind.configs.keybinds[preset] = g_configs.create("/controls/keybinds/" .. preset .. ".otml")
-    Keybind.configs.hotkeys[preset] = g_configs.create("/controls/hotkeys/" .. preset .. ".otml")
+    Keybind.configs.keybinds[preset] = g_configs.create(getKeybindsFile(preset))
+    Keybind.configs.hotkeys[preset] = g_configs.create(getHotkeysFile(preset))
   end
 
   for preset, config in pairs(Keybind.configs.hotkeys) do
@@ -365,20 +369,21 @@ end
 
 function Keybind.newPreset(presetName)
   if Keybind.presetToIndex[presetName] then
-    return
+    return  false
   end
 
   table.insert(Keybind.presets, presetName)
   Keybind.presetToIndex[presetName] = #Keybind.presets
 
-  Keybind.configs.keybinds[presetName] = g_configs.create("/controls/keybinds/" .. presetName .. ".otml")
-  Keybind.configs.hotkeys[presetName] = g_configs.create("/controls/hotkeys/" .. presetName .. ".otml")
+  Keybind.configs.keybinds[presetName] = g_configs.create(getKeybindsFile(presetName))
+  Keybind.configs.hotkeys[presetName] = g_configs.create(getHotkeysFile(presetName))
 
   Keybind.hotkeys[CHAT_MODE.ON][presetName] = {}
   Keybind.hotkeys[CHAT_MODE.OFF][presetName] = {}
 
   g_settings.setList("controls-presets", Keybind.presets)
   g_settings.save()
+  return true
 end
 
 function Keybind.copyPreset(fromPreset, toPreset)
@@ -394,13 +399,13 @@ function Keybind.copyPreset(fromPreset, toPreset)
 
   local keybindsConfigPath = Keybind.configs.keybinds[fromPreset]:getFileName()
   local keybindsConfigContent = g_resources.readFileContents(keybindsConfigPath)
-  g_resources.writeFileContents("/controls/keybinds/" .. toPreset .. ".otml", keybindsConfigContent)
-  Keybind.configs.keybinds[toPreset] = g_configs.create("/controls/keybinds/" .. toPreset .. ".otml")
+  g_resources.writeFileContents(getKeybindsFile(toPreset), keybindsConfigContent)
+  Keybind.configs.keybinds[toPreset] = g_configs.create(getKeybindsFile(toPreset))
 
   local hotkeysConfigPath = Keybind.configs.hotkeys[fromPreset]:getFileName()
   local hotkeysConfigContent = g_resources.readFileContents(hotkeysConfigPath)
-  g_resources.writeFileContents("/controls/hotkeys/" .. toPreset .. ".otml", hotkeysConfigContent)
-  Keybind.configs.hotkeys[toPreset] = g_configs.create("/controls/hotkeys/" .. toPreset .. ".otml")
+  g_resources.writeFileContents(getHotkeysFile(toPreset), hotkeysConfigContent)
+  Keybind.configs.hotkeys[toPreset] = g_configs.create(getHotkeysFile(toPreset))
 
   for chatMode = CHAT_MODE.ON, CHAT_MODE.OFF do
     Keybind.hotkeys[chatMode][toPreset] = {}
@@ -445,8 +450,8 @@ function Keybind.renamePreset(oldPresetName, newPresetName)
 
   local keybindsConfigContent = g_resources.readFileContents(keybindsConfigPath)
   g_resources.deleteFile(keybindsConfigPath)
-  g_resources.writeFileContents("/controls/keybinds/" .. newPresetName .. ".otml", keybindsConfigContent)
-  Keybind.configs.keybinds[newPresetName] = g_configs.create("/controls/keybinds/" .. newPresetName .. ".otml")
+  g_resources.writeFileContents(getKeybindsFile(newPresetName), keybindsConfigContent)
+  Keybind.configs.keybinds[newPresetName] = g_configs.create(getKeybindsFile(newPresetName))
 
   local hotkeysConfigPath = Keybind.configs.hotkeys[oldPresetName]:getFileName()
   Keybind.configs.hotkeys[oldPresetName]:save()
@@ -454,8 +459,8 @@ function Keybind.renamePreset(oldPresetName, newPresetName)
 
   local hotkeysConfigContent = g_resources.readFileContents(hotkeysConfigPath)
   g_resources.deleteFile(hotkeysConfigPath)
-  g_resources.writeFileContents("/controls/hotkeys/" .. newPresetName .. ".otml", hotkeysConfigContent)
-  Keybind.configs.hotkeys[newPresetName] = g_configs.create("/controls/hotkeys/" .. newPresetName .. ".otml")
+  g_resources.writeFileContents(getHotkeysFile(newPresetName), hotkeysConfigContent)
+  Keybind.configs.hotkeys[newPresetName] = g_configs.create(getHotkeysFile(newPresetName))
 
   Keybind.hotkeys[CHAT_MODE.ON][newPresetName] = Keybind.hotkeys[CHAT_MODE.ON][oldPresetName]
   Keybind.hotkeys[CHAT_MODE.OFF][newPresetName] = Keybind.hotkeys[CHAT_MODE.OFF][oldPresetName]
@@ -473,12 +478,12 @@ function Keybind.removePreset(presetName)
   Keybind.presetToIndex[presetName] = nil
 
   Keybind.configs.keybinds[presetName] = nil
-  g_configs.unload("/controls/keybinds/" .. presetName .. ".otml")
-  g_resources.deleteFile("/controls/keybinds/" .. presetName .. ".otml")
+  g_configs.unload(getKeybindsFile(presetName))
+  g_resources.deleteFile(getKeybindsFile(presetName))
 
   Keybind.configs.hotkeys[presetName] = nil
-  g_configs.unload("/controls/hotkeys/" .. presetName .. ".otml")
-  g_resources.deleteFile("/controls/hotkeys/" .. presetName .. ".otml")
+  g_configs.unload(getHotkeysFile(presetName))
+  g_resources.deleteFile(getHotkeysFile(presetName))
 
   if Keybind.currentPreset == presetName then
     Keybind.currentPreset = Keybind.presets[1]
@@ -494,7 +499,7 @@ function Keybind.selectPreset(presetName)
   if Keybind.currentPreset == presetName then
     return false
   end
-
+  
   if not Keybind.presetToIndex[presetName] then
     return false
   end

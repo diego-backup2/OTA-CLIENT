@@ -142,10 +142,32 @@ bool ResourceManager::launchCorrect(const std::string& product, const std::strin
 }
 
 bool ResourceManager::setupWriteDir(const std::string& product, const std::string& app) {
+    const char* localDir = nullptr;
+
 #ifdef ANDROID
-    const char* localDir = g_androidState->activity->internalDataPath;
+    localDir = g_androidState->activity->internalDataPath;
 #else
-    const char* localDir = PHYSFS_getPrefDir(product.c_str(), app.c_str());
+    // Obtém o diretório do executável
+    std::string currentDir = g_platform.getCurrentDir();
+    if (currentDir.empty()) {
+        g_logger.fatal("Unable to get current directory.");
+        return false;
+    }
+
+    // Cria o caminho para a subpasta de configuração
+    std::filesystem::path configPath = std::filesystem::u8path(currentDir) / "settings";
+
+    // Garante que a pasta de configuração exista
+    std::error_code ec;
+    if (!std::filesystem::exists(configPath)) {
+        if (!std::filesystem::create_directory(configPath, ec) || ec) {
+            g_logger.fatal(stdext::format("Unable to create config directory '%s': %s", configPath.u8string(), ec.message()));
+            return false;
+        }
+    }
+
+    // Define o diretório de escrita como a pasta de configuração
+    localDir = configPath.u8string().c_str();
 #endif
 
     if (!localDir) {

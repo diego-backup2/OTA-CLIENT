@@ -33,7 +33,11 @@ Module
     dofile 'json'
     dofile 'http'
     dofile 'test'
+    dofile 'profiles'
     
+    Profiles.init()
     Keybind.init()
   
-  @onUnload: Keybind.terminate()
+  @onUnload: |
+    Keybind.terminate()
+    Profiles.terminate()

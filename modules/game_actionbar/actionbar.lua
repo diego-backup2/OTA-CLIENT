@@ -152,7 +152,7 @@ function offline()
 end
 
 function online()
-  settingsFile = modules.client_profiles.getSettingsFilePath("actionbar_v2.json")
+  settingsFile = Profiles.getFilePath("actionbar_v2.json")
   -- load settings
   load()
 
@@ -180,7 +180,7 @@ function refresh()
   save()
 
   -- recheck file
-  settingsFile = modules.client_profiles.getSettingsFilePath("actionbar_v2.json")
+  settingsFile = Profiles.getFilePath("actionbar_v2.json")
 
   -- load settings
   load()
@@ -926,10 +926,22 @@ function assignHotkey(widget)
     return true
   end
 
+  print(widget)
+  print(widget:getId())
+  print(widget.callback)
+
+  local actionbar = widget:getParent():getParent()
+  local actionWidget = widget
+
   local okFunc = function() 
     local hotkey = window.display:getText()
+    local widget = actionWidget
+    print(widget)
+    print(widget:getId())
+    print(widget.callback)
+    print(tostring(settings[widget:getId()]))
 
-    if settings[widget:getId()].hotkey and settings[widget:getId()].hotkey:len() > 0 and widget.callback then
+    if settings[widget:getId()] and settings[widget:getId()].hotkey and settings[widget:getId()].hotkey:len() > 0 and widget.callback then
       local gameRootPanel = modules.game_interface.getRootPanel()
       g_keyboard.unbindKeyPress(widget.hotkey, widget.callback, gameRootPanel)
     end
@@ -942,8 +954,9 @@ function assignHotkey(widget)
   local clearFunc = function() 
     window.display:setText('')
     local hotkey = window.display:getText()
-
-    if settings[widget:getId()].hotkey and settings[widget:getId()].hotkey:len() > 0 and widget.callback then
+    
+    local widget = actionWidget
+    if settings[widget:getId()] and settings[widget:getId()].hotkey and settings[widget:getId()].hotkey:len() > 0 and widget.callback then
       local gameRootPanel = modules.game_interface.getRootPanel()
       g_keyboard.unbindKeyPress(widget.hotkey, widget.callback, gameRootPanel)
     end
@@ -954,6 +967,7 @@ function assignHotkey(widget)
     setupButton(widget)
   end
   local closeFunc = function() 
+    local widget = aactionWidget
     window:destroy()
     setupButton(widget)
   end
@@ -962,7 +976,6 @@ function assignHotkey(widget)
   window.buttonClear.onClick = clearFunc
   window.buttonClose.onClick = closeFunc
 
-  local actionbar = widget:getParent():getParent()
   if actionbar.locked then
     cancelFunc()
   end
