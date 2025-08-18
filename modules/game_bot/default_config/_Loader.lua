@@ -1,7 +1,7 @@
 -- load all otui files, order doesn't matter
 local configName = modules.game_bot.contentsPanel.config:getCurrentOption().text
 
-local configFiles = g_resources.listDirectoryFiles("/bot/" .. configName .. "/vBot", true, false)
+local configFiles = g_resources.listDirectoryFiles("/modules/game_bot/" .. configName .. "/vBot", true, false)
 for i, file in ipairs(configFiles) do
   local ext = file:split(".")
   if ext[#ext]:lower() == "ui" or ext[#ext]:lower() == "otui" then
@@ -24,20 +24,20 @@ local luaFiles = {
   "extras",
   "cavebot",
   "playerlist",
-  "BotServer",
+  --"BotServer",
   "alarms",
   "Conditions",
   "Equipper",
   "pushmax",
-  "combo",
+  --"combo",
   "HealBot",
   "new_healer",
   "AttackBot", -- last of major modules
-  "ingame_editor",
+  --"ingame_editor",
   "Dropper",
   "Containers",
-  "quiver_manager",
-  "quiver_label",
+  --"quiver_manager",
+  --"quiver_label",
   "tools",
   "antiRs",
   "depot_withdraw",

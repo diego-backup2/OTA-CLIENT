@@ -213,7 +213,7 @@ end
 
 local botConfigName = modules.game_bot.contentsPanel.config:getCurrentOption().text
 TargetBot.setCurrentProfile = function(name)
-  if not g_resources.fileExists("/bot/"..botConfigName.."/targetbot_configs/"..name..".json") then
+  if not g_resources.fileExists("/modules/game_bot/"..botConfigName.."/targetbot_configs/"..name..".json") then
     return warn("there is no targetbot profile with that name!")
   end
   TargetBot.setOff()

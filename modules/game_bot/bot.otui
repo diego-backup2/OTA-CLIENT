@@ -43,6 +43,7 @@ MiniWindow
       margin-left: 2
       margin-right: 75
       text-offset: 3 0
+      visible: false
       
     Button
       id: editConfig
@@ -53,11 +54,12 @@ MiniWindow
       @onClick: modules.game_bot.edit()
       margin-left: 3
       margin-right: 37
+      visible: false
 
     Button
       id: enableButton
       anchors.top: prev.top
-      anchors.left: prev.right
+      anchors.left: parent.left
       anchors.right: parent.right
       margin-left: 3
       margin-right: 2

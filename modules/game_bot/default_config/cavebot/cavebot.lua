@@ -396,7 +396,7 @@ end
 
 local botConfigName = modules.game_bot.contentsPanel.config:getCurrentOption().text
 CaveBot.setCurrentProfile = function(name)
-  if not g_resources.fileExists("/bot/"..botConfigName.."/cavebot_configs/"..name..".cfg") then
+  if not g_resources.fileExists("/modules/game_bot/"..botConfigName.."/cavebot_configs/"..name..".cfg") then
     return warn("there is no cavebot profile with that name!")
   end
   CaveBot.setOff()

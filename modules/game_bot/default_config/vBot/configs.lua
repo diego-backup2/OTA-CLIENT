@@ -5,27 +5,25 @@
 local configName = modules.game_bot.contentsPanel.config:getCurrentOption().text
 
 -- make vBot config dir
-if not g_resources.directoryExists("/bot/".. configName .."/vBot_configs/") then
-  g_resources.makeDir("/bot/".. configName .."/vBot_configs/")
-end
-
--- make profile dirs
-for i=1,10 do
-  local path = "/bot/".. configName .."/vBot_configs/profile_"..i
-  if not g_resources.directoryExists(path) then
-    g_resources.makeDir(path)
-  end
-end
-
-local profile = g_settings.getNumber('profile')
-
 HealBotConfig = {}
-local healBotFile = "/bot/" .. configName .. "/vBot_configs/profile_".. profile .. "/HealBot.json"
 AttackBotConfig = {}
-local attackBotFile = "/bot/" .. configName .. "/vBot_configs/profile_".. profile .. "/AttackBot.json"
 SuppliesConfig = {}
-local suppliesFile = "/bot/" .. configName .. "/vBot_configs/profile_".. profile .. "/Supplies.json"
 
+function ProfilesgetFolderName()
+  local name = g_game.getCharacterName()
+  -- Remove caracteres inválidos para nomes de arquivos no Windows
+  name = name:gsub("[<>:\"/\\|?*]", "")   -- Remove caracteres especiais
+  name = name:gsub("%s+", "_")            -- Substitui espaços por underscores
+  return name
+end
+
+function ProfilesgetFilePath(filename)
+  return "/profiles/" .. ProfilesgetFolderName() .. "/" .. filename
+end
+
+local healBotFile = ProfilesgetFilePath("HealBot.json")
+local attackBotFile = ProfilesgetFilePath("AttackBot.json")
+local suppliesFile = ProfilesgetFilePath("Supplies.json")
 
 --healbot
 if g_resources.fileExists(healBotFile) then
