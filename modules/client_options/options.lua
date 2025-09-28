@@ -2248,3 +2248,32 @@ function filterAssignSpell()
     assignSpellWindow.spells.list:focusNextChild(MouseFocusReason, true)
   end
 end
+
+function loadInterfacePanelSettings()
+  local settingsFile = Profiles.getFilePath("interface.json")
+
+  if g_resources.fileExists(settingsFile) then
+    local interfaceSettings = json.decode(g_resources.readFileContents(settingsFile))
+    if interfaceSettings then
+      setOption("leftPanels", interfaceSettings.leftPanels, true)
+      setOption("rightPanels", interfaceSettings.rightPanels - 1, true)
+    end
+  else
+    local defaultSettings = {
+      leftPanels = 2,
+      rightPanels = 3
+    }
+    setOption("leftPanels", defaultSettings.leftPanels, true)
+    setOption("rightPanels", defaultSettings.rightPanels - 1, true)
+    g_resources.writeFileContents(settingsFile, json.encode(defaultSettings))
+  end
+end
+
+function saveInterfacePanelSettings()
+  local settingsFile = Profiles.getFilePath("interface.json")
+  local interfaceSettings = {
+    leftPanels = getOption("leftPanels"),
+    rightPanels = getOption("rightPanels") + 1
+  }
+  g_resources.writeFileContents(settingsFile, json.encode(interfaceSettings))
+end
