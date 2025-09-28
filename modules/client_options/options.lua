@@ -726,7 +726,10 @@ function setOption(key, value, force)
   if key == "classicView" or key == "rightPanels" or key == "leftPanels" or key == "cacheMap" then
     modules.game_interface.refreshViewMode()
   elseif key:find("actionbar") then
-    modules.game_actionbar.show()
+    local i = tonumber(key:sub(10))
+    if i then
+      modules.game_actionbar.on(i, value)
+    end
   end
 
   if key == "topBar" then

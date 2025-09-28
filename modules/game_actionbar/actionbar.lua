@@ -118,6 +118,8 @@ function createActionBars()
     actionBars[i] = g_ui.loadUI(layout, parent)
     actionBars[i]:setId("actionbar."..i)
     actionBars[i].n = i
+    actionBars[i].on = function(enabled) on(i, enabled) end
+
     parent:moveChildToIndex(actionBars[i], index)
   end
 end
@@ -168,7 +170,7 @@ end
 function show()
   for i=1,#actionBars do
     local actionbar = actionBars[i]
-    local enabled = g_settings.getBoolean("actionbar"..i, false)
+    local enabled = settings["actionbar"..i] or false
 
     actionbar:setOn(enabled)
     setupActionBar(i)
@@ -1209,5 +1211,13 @@ function load()
       settings = result
   else
       settings = {}
+  end
+end
+
+function on(i, enabled)
+  settings["actionbar"..i] = enabled
+  if actionBars[i] then
+    actionBars[i]:setOn(enabled)
+    setupActionBar(i)
   end
 end
