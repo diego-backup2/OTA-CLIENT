@@ -249,6 +249,7 @@ function changeLockState(widget)
   actionbar.locked = not widget:isOn()
 
   settings[actionbar:getId()] = not widget:isOn() or nil
+  save()
 end
 
 function moveActionButtons(widget)
@@ -322,6 +323,7 @@ function onDropActionButton(self, mousePosition, mouseButton)
   cachedSettings = nil
   g_mouse.popCursor('target')
   self:ungrabMouse()
+  save()
 end
 
 function setupActionBar(n)
@@ -352,6 +354,13 @@ function setupButton(widget)
   local id = widget:getId()
   local config = settings[id]
   local actionbar = widget:getParent():getParent()
+
+  local actionBarN = tonumber(string.match(id, "(%d+)"))
+  local buttonN = tonumber(string.match(id, "%.(%d+)"))
+  if actionBarN == 1 and buttonN <= 12 and (not config or not config.hotkey) then
+    config = config or {}
+    config.hotkey = "F" .. buttonN
+  end
 
   -- disable count
   widget.item:setShowCount(false)
@@ -509,6 +518,7 @@ function resetSlot(widget)
   end
 
   setupButton(widget)
+  save()
 end
 
 function assignItem(widget)
@@ -636,6 +646,7 @@ function assignItem(widget)
       radio:destroy()
     end
     setupButton(widget)
+    save()
   end
 
   local cancelFunc = function()
@@ -723,6 +734,7 @@ function assignText(widget)
       window:destroy()
     end
     setupButton(widget)
+    save()
   end
   local cancelFunc = function()
     window:destroy()
@@ -877,6 +889,7 @@ function assignSpell(widget)
       window:destroy()
     end
     setupButton(widget)
+    save()
   end
   local cancelFunc = function() 
     window:destroy()
@@ -952,6 +965,7 @@ function assignHotkey(widget)
   
     window:destroy()
     setupButton(widget)
+    save()
   end
   local clearFunc = function() 
     window.display:setText('')
@@ -967,6 +981,7 @@ function assignHotkey(widget)
   
     window:destroy()
     setupButton(widget)
+    save()
   end
   local closeFunc = function() 
     local widget = aactionWidget
@@ -1210,7 +1225,9 @@ function load()
       end
       settings = result
   else
-      settings = {}
+      settings = {
+        actionbar1 = true
+      }
   end
 end
 
@@ -1220,4 +1237,5 @@ function on(i, enabled)
     actionBars[i]:setOn(enabled)
     setupActionBar(i)
   end
+  save()
 end
