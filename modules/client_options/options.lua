@@ -855,6 +855,8 @@ function online()
     end
   end
 
+  loadInterfacePanelSettings()
+
   addEvent(function()
     assignSpellWindow.availableSpellsOnly:setChecked(true)
   end)
@@ -863,6 +865,8 @@ end
 function offline()
   keybindsPanel.buttons.newAction:disable()
   setLightOptionsVisibility(true)
+
+  saveInterfacePanelSettings()
 end
 
 function okButton()
