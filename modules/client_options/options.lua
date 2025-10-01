@@ -2251,29 +2251,36 @@ end
 
 function loadInterfacePanelSettings()
   local settingsFile = Profiles.getFilePath("interface.json")
-
   if g_resources.fileExists(settingsFile) then
-    local interfaceSettings = json.decode(g_resources.readFileContents(settingsFile))
-    if interfaceSettings then
-      setOption("leftPanels", interfaceSettings.leftPanels, true)
-      setOption("rightPanels", interfaceSettings.rightPanels - 1, true)
-    end
+    loadExistingSettings(settingsFile)
   else
-    local defaultSettings = {
-      leftPanels = 2,
-      rightPanels = 3
-    }
-    setOption("leftPanels", defaultSettings.leftPanels, true)
-    setOption("rightPanels", defaultSettings.rightPanels - 1, true)
-    g_resources.writeFileContents(settingsFile, json.encode(defaultSettings))
+    createNewSetting(settingsFile)
   end
 end
 
 function saveInterfacePanelSettings()
   local settingsFile = Profiles.getFilePath("interface.json")
   local interfaceSettings = {
-    leftPanels = getOption("leftPanels"),
-    rightPanels = getOption("rightPanels") + 1
+    leftPanels = getOption("leftPanels") - 1,
+    rightPanels = getOption("rightPanels")
   }
   g_resources.writeFileContents(settingsFile, json.encode(interfaceSettings))
+end
+
+function loadExistingSettings(settingsFile)
+    local interfaceSettings = json.decode(g_resources.readFileContents(settingsFile))
+    if interfaceSettings then
+      setOption("leftPanels", interfaceSettings.leftPanels + 1, true)
+      setOption("rightPanels", interfaceSettings.rightPanels, true)
+    end
+end
+
+function createNewSetting(settingsFile)
+    local defaultSettings = {
+      leftPanels = 1,
+      rightPanels = 2
+    }
+    setOption("leftPanels", defaultSettings.leftPanels + 1, true)
+    setOption("rightPanels", defaultSettings.rightPanels, true)
+    g_resources.writeFileContents(settingsFile, json.encode(defaultSettings))
 end
