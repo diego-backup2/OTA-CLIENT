@@ -211,12 +211,13 @@ function save()
     return
   end
   
+  saveWhichPanelBotIsCurrentlyOpen()
   local settings = g_settings.getNode('bot') or {}
   local index = g_game.getCharacterName() .. "_" .. g_game.getClientVersion()
   if settings[index] == nil then
     return
   end
-  
+
   local status, result = pcall(function() 
     return json.encode(botStorage, 2) 
   end)
@@ -248,6 +249,7 @@ end
 function online()
   botButton:show()
   scheduleEvent(refresh, 20)
+  loadBotSetup()
 end
 
 function offline()
@@ -703,4 +705,35 @@ end
 function botInventoryChange(player, slot, item, oldItem)
   if botExecutor == nil then return false end
   safeBotCall(function() botExecutor.callbacks.onInventoryChange(player, slot, item, oldItem) end)
+end
+
+function saveWhichPanelBotIsCurrentlyOpen()
+  local botSettings = g_settings.getNode('bot') or {}
+  local index = g_game.getCharacterName() .. "_" .. g_game.getClientVersion()
+  if not botSettings[index] then
+    botSettings[index] = {}
+  end
+  botSettings[index].botWindow = {
+    parent = botWindow:getParent():getId(),
+    visible = botButton:isOn()
+  }
+  g_settings.setNode('bot', botSettings)
+end
+
+function loadBotSetup()
+     local botSettings = g_settings.getNode('bot')
+     if botSettings then
+       local index = g_game.getCharacterName() .. "_" .. g_game.getClientVersion()
+       local windowSettings = botSettings[index].botWindow
+       if windowSettings then
+         local parent = g_ui.getRootWidget():recursiveGetChildById(windowSettings.parent)
+         if parent then
+           botWindow:setParent(parent)
+         end
+         if windowSettings.visible then
+           botWindow:open()
+           botButton:setOn(true)
+         end
+       end
+     end
 end
