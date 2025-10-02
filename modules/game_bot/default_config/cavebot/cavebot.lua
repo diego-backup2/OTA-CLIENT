@@ -83,7 +83,7 @@ end)
 
 -- config, its callback is called immediately, data can be nil
 local lastConfig = ""
-config = Config.setup("cavebot_configs", configWidget, "cfg", function(name, enabled, data)
+config = Config.setup(g_game.getCharacterName() .. "/cavebot_configs", configWidget, "cfg", function(name, enabled, data)
   if enabled and CaveBot.Recorder.isOn() then
     CaveBot.Recorder.disable()
     CaveBot.setOff()
@@ -186,7 +186,7 @@ CaveBot.setOff = function(val)
 end
 
 CaveBot.getCurrentProfile = function()
-  return storage._configs.cavebot_configs.selected
+  return storage._configs[g_game.getCharacterName() .. "/cavebot_configs"].selected
 end
 
 CaveBot.lastReachedLabel = function()

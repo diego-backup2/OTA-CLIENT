@@ -118,7 +118,7 @@ targetbotMacro = macro(100, function()
 end)
 
 -- config, its callback is called immediately, data can be nil
-config = Config.setup("targetbot_configs", configWidget, "json", function(name, enabled, data)
+config = Config.setup(g_game.getCharacterName() .. "/targetbot_configs", configWidget, "json", function(name, enabled, data)
   if not data then
     ui.status.right:setText("Off")
     return targetbotMacro.setOff() 
@@ -208,7 +208,7 @@ TargetBot.setOff = function(val)
 end
 
 TargetBot.getCurrentProfile = function()
-  return storage._configs.targetbot_configs.selected
+  return storage._configs[g_game.getCharacterName() .. "/targetbot_configs"].selected
 end
 
 local botConfigName = modules.game_bot.contentsPanel.config:getCurrentOption().text
