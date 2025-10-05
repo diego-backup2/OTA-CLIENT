@@ -469,7 +469,7 @@ function onBaseSkillChange(localPlayer, id, baseLevel)
 end
 
 function save()
-    local settingsFile = modules.client_profiles.getSettingsFilePath("topbar.json")
+    local settingsFile = Profiles.getFilePath("topbar.json")
 
     local status, result = pcall(function() return json.encode(settings, 2) end)
     if not status then
@@ -487,7 +487,7 @@ function save()
 end
 
 function load()
-    local settingsFile = modules.client_profiles.getSettingsFilePath("topbar.json")
+    local settingsFile = Profiles.getFilePath("topbar.json")
 
     if g_resources.fileExists(settingsFile) then
         local status, result = pcall(function()

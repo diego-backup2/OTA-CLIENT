@@ -66,8 +66,6 @@ local defaultOptions = {
 
   actionbarLock = false,
 
-  profile = 1,
-
   antialiasing = true,
   floorShadow = true,
 
@@ -725,14 +723,13 @@ function setOption(key, value, force)
   g_settings.set(key, value)
   options[key] = value
 
-  if key == "profile" then
-    modules.client_profiles.onProfileChange()
-  end
-
   if key == "classicView" or key == "rightPanels" or key == "leftPanels" or key == "cacheMap" then
     modules.game_interface.refreshViewMode()
   elseif key:find("actionbar") then
-    modules.game_actionbar.show()
+    local i = tonumber(key:sub(10))
+    if i then
+      modules.game_actionbar.on(i, value)
+    end
   end
 
   if key == "topBar" then
@@ -832,13 +829,21 @@ end
 -- hide/show
 function online()
   keybindsPanel.buttons.newAction:enable()
-
+  
   setLightOptionsVisibility(not g_game.getFeature(GameForceLight))
+  
+  local firstLogin = false
+  local name = g_game.getCharacterName()
+
+  if Keybind.newPreset(name) then
+    keybindsPanel.presets.list:addOption(name)
+    keybindsPanel.presets.list:setCurrentOption(name)
+    firstLogin = true
+  end
 
   g_app.setSmooth(g_settings.getBoolean("antialiasing"))
 
-  if g_settings.getBoolean("autoSwitchPreset") then
-    local name = g_game.getCharacterName()
+  if g_settings.getBoolean("autoSwitchPreset") or firstLogin then
     if Keybind.selectPreset(name) then
       keybindsPanel.presets.list:setCurrentOption(name, true)
 
@@ -850,6 +855,8 @@ function online()
     end
   end
 
+  loadInterfacePanelSettings()
+
   addEvent(function()
     assignSpellWindow.availableSpellsOnly:setChecked(true)
   end)
@@ -858,6 +865,8 @@ end
 function offline()
   keybindsPanel.buttons.newAction:disable()
   setLightOptionsVisibility(true)
+
+  saveInterfacePanelSettings()
 end
 
 function okButton()
@@ -2238,4 +2247,40 @@ function filterAssignSpell()
   else
     assignSpellWindow.spells.list:focusNextChild(MouseFocusReason, true)
   end
+end
+
+function loadInterfacePanelSettings()
+  local settingsFile = Profiles.getFilePath("interface.json")
+  if g_resources.fileExists(settingsFile) then
+    loadExistingSettings(settingsFile)
+  else
+    createNewSetting(settingsFile)
+  end
+end
+
+function saveInterfacePanelSettings()
+  local settingsFile = Profiles.getFilePath("interface.json")
+  local interfaceSettings = {
+    leftPanels = getOption("leftPanels") - 1,
+    rightPanels = getOption("rightPanels")
+  }
+  g_resources.writeFileContents(settingsFile, json.encode(interfaceSettings))
+end
+
+function loadExistingSettings(settingsFile)
+    local interfaceSettings = json.decode(g_resources.readFileContents(settingsFile))
+    if interfaceSettings then
+      setOption("leftPanels", interfaceSettings.leftPanels + 1, true)
+      setOption("rightPanels", interfaceSettings.rightPanels, true)
+    end
+end
+
+function createNewSetting(settingsFile)
+    local defaultSettings = {
+      leftPanels = 1,
+      rightPanels = 2
+    }
+    setOption("leftPanels", defaultSettings.leftPanels + 1, true)
+    setOption("rightPanels", defaultSettings.rightPanels, true)
+    g_resources.writeFileContents(settingsFile, json.encode(defaultSettings))
 end

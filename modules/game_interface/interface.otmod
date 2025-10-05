@@ -9,8 +9,8 @@ Module
     - game_buttons
     - game_questlog
     - game_textmessage
-    - game_console
     - game_outfit
+    - game_console
     - game_healthinfo
     - game_skills
     - game_inventory
@@ -34,7 +34,6 @@ Module
     - game_store
     - game_itemselector
     - client_textedit
-    - client_profiles
     - game_actionbar
     - game_prey
     - game_imbuing

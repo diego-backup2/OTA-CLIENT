@@ -272,7 +272,7 @@ end
 
 -- json handlers
 function load()
-  local file = "/settings/questlog.json"
+  local file = Profiles.getFilePath("questlog.json")
   if g_resources.fileExists(file) then
     local status, result = pcall(function()
         return json.decode(g_resources.readFileContents(file))
@@ -287,7 +287,7 @@ function load()
 end
 
 function save()
-  local file = "/settings/questlog.json"
+  local file = Profiles.getFilePath("questlog.json")
   local status, result = pcall(function() return json.encode(settings, 2) end)
   if not status then
       return g_logger.error(
