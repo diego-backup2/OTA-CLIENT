@@ -22,9 +22,22 @@ MainWindow
     text-wrap: true
     text: Click "Ok" to assign the hotkey. Click "Clear" to remove the hotkey from "
 
+  Label
+    id: used
+    font: verdana-11px-monochrome
+    text-align: center
+    color: #f75f5f
+    !text: tr("This hotkey is already in use and will be overwritten")
+    visible: false
+    anchors.bottom: hotkeySeparator.top
+    margin-bottom: 10
+    anchors.left: parent.left
+    anchors.right: parent.right
+
   HorizontalSeparator
-    anchors.top: prev.bottom
-    margin-top: 10
+    id: hotkeySeparator
+    anchors.bottom: buttonClose.top
+    margin-bottom: 10
     anchors.left: parent.left
     anchors.right: parent.right
 

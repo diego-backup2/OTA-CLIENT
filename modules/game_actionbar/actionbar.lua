@@ -938,6 +938,8 @@ function assignHotkey(widget)
   window.onKeyDown = function(window, keyCode, keyboardModifiers)
     local keyCombo = determineKeyComboDesc(keyCode, keyboardModifiers)
     window.display:setText(keyCombo)
+    local keyUsed = isHotkeyInUse(keyCombo, widget:getId())
+    window.used:setVisible(keyUsed)
     return true
   end
 
@@ -951,10 +953,8 @@ function assignHotkey(widget)
   local okFunc = function() 
     local hotkey = window.display:getText()
     local widget = actionWidget
-    print(widget)
-    print(widget:getId())
-    print(widget.callback)
-    print(tostring(settings[widget:getId()]))
+
+    unbindExistingHotkey(hotkey, widget:getId())
 
     if settings[widget:getId()] and settings[widget:getId()].hotkey and settings[widget:getId()].hotkey:len() > 0 and widget.callback then
       local gameRootPanel = modules.game_interface.getRootPanel()
@@ -984,7 +984,7 @@ function assignHotkey(widget)
     save()
   end
   local closeFunc = function() 
-    local widget = aactionWidget
+    local widget = actionWidget
     window:destroy()
     setupButton(widget)
   end
@@ -1238,4 +1238,40 @@ function on(i, enabled)
     setupActionBar(i)
   end
   save()
+end
+
+function isHotkeyInUse(hotkey, widgetId)
+  for i=1,#actionBars do
+    local actionbar = actionBars[i]
+    if actionbar.tabBar then
+      for _, button in ipairs(actionbar.tabBar:getChildren()) do
+        if button.hotkey == hotkey and button:getId() ~= widgetId then
+          return button:getId()
+        end
+      end
+    end
+  end
+  return false
+end
+
+function unbindExistingHotkey(hotkey, currentWidgetId)
+  local boundWidgetId = isHotkeyInUse(hotkey, currentWidgetId)
+  if not boundWidgetId then return end
+
+  local actionBarIndex = tonumber(string.match(boundWidgetId, "(%d+)"))
+  if not actionBarIndex then return end
+
+  local targetWidget = actionBars[actionBarIndex].tabBar:getChildById(boundWidgetId)
+  if not targetWidget then return end
+
+  local boundSettings = settings[boundWidgetId]
+  if boundSettings and boundSettings.hotkey and #boundSettings.hotkey > 0 and targetWidget.callback then
+    local rootPanel = modules.game_interface.getRootPanel()
+    g_keyboard.unbindKeyPress(targetWidget.hotkey, targetWidget.callback, rootPanel)
+  end
+
+  settings[boundWidgetId] = boundSettings or {}
+  settings[boundWidgetId].hotkey = ""
+
+  setupButton(targetWidget)
 end
