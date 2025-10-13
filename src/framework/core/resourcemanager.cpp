@@ -148,14 +148,14 @@ bool ResourceManager::setupWriteDir(const std::string& product, const std::strin
     localDir = g_androidState->activity->internalDataPath;
 #else
     // Obtém o diretório do executável
-    std::string currentDir = g_platform.getCurrentDir();
-    if (currentDir.empty()) {
-        g_logger.fatal("Unable to get current directory.");
+    std::string executableDir = m_binaryPath.parent_path().string();
+    if (executableDir.empty()) {
+        g_logger.fatal("Unable to get executable directory.");
         return false;
     }
 
     // Cria o caminho para a subpasta de configuração
-    std::filesystem::path configPath = std::filesystem::u8path(currentDir) / "settings";
+    std::filesystem::path configPath = std::filesystem::u8path(executableDir) / "settings";
 
     // Garante que a pasta de configuração exista
     std::error_code ec;
