@@ -62,15 +62,6 @@ function formatNumber(amount)
   return amount
 end
 
-function getInventoryItemCount(itemId, subType)
-  local data = inventoryItems[itemId]
-  if data then
-    return data
-  end
-
-  return 0
-end
-
 local TYPE = {
   BLANK = 0,
   TEXT = 1,
@@ -87,78 +78,62 @@ local ACTION = {
   USE_CROSS = 5
 }
 
--- servers may have different id's, change if not working properly (only for protocols 910+)
-local function translateVocation(id) 
-  if id == 1 or id == 11 then
-    return 8 -- ek
-  elseif id == 2 or id == 12 then
-    return 7 -- rp
-  elseif id == 3 or id == 13 then
-    return 5 -- ms
-  elseif id == 4 or id == 14 then
-    return 6 -- ed
-  end
-end
-
-local function isSpell(text) -- returns bool or table (spelldata, param text)
-  text = text:lower():trim()
-
-  for spellName, spellData in pairs(SpellInfo['Default']) do
-    local words = spellData.words
-    local param = spellData.parameter
-    local data = spellData
-    data.spellName = spellName
-
-    if not param then
-      if words == text then
-        return {data=data}
-      end
-    else
-      if text:find(words) then
-        text = text:gsub(words, ""):trim()
-        text = text:gsub('"', "")
-        text = text:gsub("'", "")
-        return {data=data, param=text}
-      end
-    end
-  end
-
-  return false
-end
-
 function init()
   connect(g_game, {
     onGameStart = online,
     onGameEnd = offline,
     onSpellGroupCooldown = onSpellGroupCooldown,
     onSpellCooldown = onSpellCooldown,
-    onInventoryInfo = onInventoryInfo
   })
-
-  if inventoryItems_ ~= nil then
-    scheduleEvent(function()
-      onInventoryInfo(inventoryItems_)
-    end, 10)
-  end
 
   if g_game.isOnline() then
     online()
   end
 
-  -- taken from game_hotkeys
   mouseGrabberWidget = g_ui.createWidget('UIWidget')
   mouseGrabberWidget:setVisible(false)
   mouseGrabberWidget:setFocusable(false)
   mouseGrabberWidget.onMouseRelease = onDropActionButton
 end
 
+function offline()
+  save()
+
+  -- destroy windows
+  destroyAssignWindows()
+  mouseGrabberWidget:destroy()
+
+  -- remove binds
+  for index, actionbar in ipairs(actionBars) do
+    if actionbar.tabBar then
+      for i, actionButton in ipairs(actionbar.tabBar:getChildren()) do
+        local callback = actionButton.callback
+        local hotkey = actionButton.hotkey and actionButton.hotkey:len() > 0 and actionButton.hotkey or false
+
+        if callback and hotkey then
+          local gameRootPanel = modules.game_interface.getRootPanel()
+          g_keyboard.unbindKeyPress(hotkey, callback, gameRootPanel)
+        end
+      end
+    end
+  end
+
+  for i, actionbar in ipairs(actionBars) do
+    actionbar:destroy()
+  end
+  actionBars = {}
+end
+
 function terminate()
+  for i, actionbar in ipairs(actionBars) do
+    actionbar:destroy()
+  end
+  actionBars = {}
   disconnect(g_game, {
     onGameStart = online,
     onGameEnd = offline,
     onSpellGroupCooldown = onSpellGroupCooldown,
     onSpellCooldown = onSpellCooldown,
-    onInventoryInfo = onInventoryInfo
   })
 end
 
@@ -198,46 +173,13 @@ function createActionBars()
   end
 end
 
-function offline()
-  -- save settings to json
-  save()
-
-  -- destroy windows
-  destroyAssignWindows()
-  mouseGrabberWidget:destroy()
-
-  -- remove binds
-  for index, actionbar in ipairs(actionBars) do
-    if actionbar.tabBar then
-      for i, actionButton in ipairs(actionbar.tabBar:getChildren()) do
-        local callback = actionButton.callback
-        local hotkey = actionButton.hotkey and actionButton.hotkey:len() > 0 and actionButton.hotkey or false
-
-        if callback and hotkey then
-          local gameRootPanel = modules.game_interface.getRootPanel()
-          g_keyboard.unbindKeyPress(hotkey, callback, gameRootPanel)
-        end
-      end
-    end
-  end
-
-  -- destroy actionbars
-  for i, panel in ipairs(actionBars) do
-    panel:destroy()
-  end
-end
-
 function online()
   settingsFile = Profiles.getFilePath("actionbar_v2.json")
-  -- load settings
   load()
-
-  -- create actionbars
   createActionBars()
-
-  -- show & setup actionbars
   show()
 
+  scheduleEvent(updateAllButtonAmounts, 500)
   destroyAssignWindows()
 end
 
@@ -466,15 +408,11 @@ function setupButton(widget)
     widget.type = config.type
     widget.text:setText(config.sayText or "")
     if widget.item:getItemId() ~= (config.itemId and config.itemId > 100 and config.itemId or 0) then
-      widget.item:setItem(Item.create(config.itemId))
-      if inventoryItems ~= nil then
-        local amount = getInventoryItemCount(widget.item:getItemId(), widget.item:getItemCountOrSubType())
+        widget.item:setItem(Item.create(config.itemId))
+        local player = g_game.getLocalPlayer()
+        local amount = player:getItemsCount(config.ItemId)
         widget.item:setItemCount(amount)
         widget.amount:setText(amount > 0 and amount or "")
-        if inventoryItems_ ~= nil then
-          onInventoryInfo(inventoryItems_)
-        end
-      end
     end
     widget.sayText = config.sayText
     widget.autoSay = config.autoSay
