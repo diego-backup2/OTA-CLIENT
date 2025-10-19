@@ -34,11 +34,9 @@ function onInventoryInfo(items)
         end
         child.item.changing = false
         scheduleEvent(function()
-          child.item:setStyle("ItemActionBar")
           local player = g_game.getLocalPlayer()
           for i = InventorySlotFirst, InventorySlotPurse do
             if player:getInventoryItem(i) and player:getInventoryItem(i):getId() == child.item:getItemId() then
-              child.item:setStyle("ItemActionBar2")
               child.item.onHoverChange = function(widget, hovered)
                 -- scheduleEvent(function()
                 -- widget:setImageClip(torect("0 46 22 23"))
@@ -88,7 +86,7 @@ local ACTION = {
 }
 
 -- servers may have different id's, change if not working properly (only for protocols 910+)
-local function translateVocation(id) 
+local function translateVocation(id)
   if id == 1 or id == 11 then
     return 8 -- ek
   elseif id == 2 or id == 12 then
@@ -466,8 +464,14 @@ function setupButton(widget)
     widget.type = config.type
     widget.text:setText(config.sayText or "")
     if widget.item:getItemId() ~= (config.itemId and config.itemId > 100 and config.itemId or 0) then
+
+--         widget.item:setItem(Item.create(config.itemId))
+--         local player = g_game.getLocalPlayer()
+--         local amount = player:getItemsCount(widget.item:getItemId())
+--         widget.item:setItemCount(amount)
+--         widget.amount:setText(amount > 0 and amount or "")
       widget.item:setItem(Item.create(config.itemId))
-      if inventoryItems ~= nil then
+      if inventoryItems_ ~= nil then
         local amount = getInventoryItemCount(widget.item:getItemId(), widget.item:getItemCountOrSubType())
         widget.item:setItemCount(amount)
         widget.amount:setText(amount > 0 and amount or "")
@@ -1368,4 +1372,33 @@ function unbindExistingHotkey(hotkey, currentWidgetId)
   settings[boundWidgetId].hotkey = ""
 
   setupButton(targetWidget)
+end
+
+function updateAllButtonAmounts()
+  if not actionBars then return end
+  local player = g_game.getLocalPlayer()
+  if not player then return end
+
+  for _, panel in ipairs(actionBars) do
+    if panel and panel:isVisible() and panel.tabBar then
+      for _, child in ipairs(panel.tabBar:getChildren()) do
+        if child.type == TYPE.ITEM then
+            local item = child.item:getItem()
+            if item and item:isStackable() then
+              local itemId = item:getId()
+              local amount = player:getItemsCount(itemId)
+              if amount > 1 then
+                child.amount:setText(formatNumber(amount))
+                child.item:setColor("#ffffff")
+              else
+                child.amount:setText("")
+                child.item:setColor(amount == 0 and "#ffffff5A" or "#ffffff")
+              end
+            else
+              child.amount:setText("")
+            end
+        end
+      end
+    end
+  end
 end
