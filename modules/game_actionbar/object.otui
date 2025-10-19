@@ -1,4 +1,4 @@
-ActionBarCheckBox  < CheckBox
+RoundCheckBox < CheckBox
   image-source: /images/ui/checkbox_round
   
   $first:
@@ -6,10 +6,6 @@ ActionBarCheckBox  < CheckBox
 
   $!first:
     margin-top: 5
-
-ActionBarCheckBox < CheckBox
-  $disabled:
-    color: gray
 
 MainWindow
   id: assignItemWindow
@@ -36,27 +32,27 @@ MainWindow
       type: verticalBox
       fit-children: true
 
-    ActionBarCheckBox 
+    RoundCheckBox
       id: useSelf
       text: Use on yourself
       enabled: false
     
-    ActionBarCheckBox 
+    RoundCheckBox
       id: useTarget
       text: Use on target
       enabled: false
 
-    ActionBarCheckBox 
+    RoundCheckBox
       id: useCross
       text: With crosshair
       enabled: false
 
-    ActionBarCheckBox 
+    RoundCheckBox
       id: equip
       text: Equip/Unequip
       enabled: false
 
-    ActionBarCheckBox 
+    RoundCheckBox
       id: use
       text: Use
       enabled: false
