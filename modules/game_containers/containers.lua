@@ -230,4 +230,7 @@ function onContainerUpdateItem(container, slot, item, oldItem)
   if not container.window then return end
   local itemWidget = container.itemsPanel:getChildById('item' .. slot)
   itemWidget:setItem(item)
+  if modules.game_actionbar then
+    modules.game_actionbar.updateAllButtonAmounts()
+  end
 end
