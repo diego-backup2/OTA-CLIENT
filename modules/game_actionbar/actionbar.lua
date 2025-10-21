@@ -464,14 +464,8 @@ function setupButton(widget)
     widget.type = config.type
     widget.text:setText(config.sayText or "")
     if widget.item:getItemId() ~= (config.itemId and config.itemId > 100 and config.itemId or 0) then
-
---         widget.item:setItem(Item.create(config.itemId))
---         local player = g_game.getLocalPlayer()
---         local amount = player:getItemsCount(widget.item:getItemId())
---         widget.item:setItemCount(amount)
---         widget.amount:setText(amount > 0 and amount or "")
       widget.item:setItem(Item.create(config.itemId))
-      if inventoryItems_ ~= nil then
+      if inventoryItems ~= nil then
         local amount = getInventoryItemCount(widget.item:getItemId(), widget.item:getItemCountOrSubType())
         widget.item:setItemCount(amount)
         widget.amount:setText(amount > 0 and amount or "")
@@ -1372,33 +1366,4 @@ function unbindExistingHotkey(hotkey, currentWidgetId)
   settings[boundWidgetId].hotkey = ""
 
   setupButton(targetWidget)
-end
-
-function updateAllButtonAmounts()
-  if not actionBars then return end
-  local player = g_game.getLocalPlayer()
-  if not player then return end
-
-  for _, panel in ipairs(actionBars) do
-    if panel and panel:isVisible() and panel.tabBar then
-      for _, child in ipairs(panel.tabBar:getChildren()) do
-        if child.type == TYPE.ITEM then
-            local item = child.item:getItem()
-            if item and item:isStackable() then
-              local itemId = item:getId()
-              local amount = player:getItemsCount(itemId)
-              if amount > 1 then
-                child.amount:setText(formatNumber(amount))
-                child.item:setColor("#ffffff")
-              else
-                child.amount:setText("")
-                child.item:setColor(amount == 0 and "#ffffff5A" or "#ffffff")
-              end
-            else
-              child.amount:setText("")
-            end
-        end
-      end
-    end
-  end
 end
