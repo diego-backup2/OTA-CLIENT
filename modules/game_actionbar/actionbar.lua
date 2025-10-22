@@ -34,11 +34,9 @@ function onInventoryInfo(items)
         end
         child.item.changing = false
         scheduleEvent(function()
-          child.item:setStyle("ItemActionBar")
           local player = g_game.getLocalPlayer()
           for i = InventorySlotFirst, InventorySlotPurse do
             if player:getInventoryItem(i) and player:getInventoryItem(i):getId() == child.item:getItemId() then
-              child.item:setStyle("ItemActionBar2")
               child.item.onHoverChange = function(widget, hovered)
                 -- scheduleEvent(function()
                 -- widget:setImageClip(torect("0 46 22 23"))
@@ -88,7 +86,7 @@ local ACTION = {
 }
 
 -- servers may have different id's, change if not working properly (only for protocols 910+)
-local function translateVocation(id) 
+local function translateVocation(id)
   if id == 1 or id == 11 then
     return 8 -- ek
   elseif id == 2 or id == 12 then
