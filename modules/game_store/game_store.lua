@@ -13,6 +13,7 @@ local changeNameWindow = nil
 local gameStoreButton = nil
 local msgWindow = nil
 local transferWindow = nil
+local categoryToSelectAfterRefresh = nil
 
 local premiumPoints = 0
 local premiumSecondPoints = -1
@@ -272,6 +273,15 @@ function onGameStoreFetchOffers(data)
   -- description
   -- categoryId
   offers[data.category] = data.offers
+
+  if categoryToSelectAfterRefresh and data.category == categoryToSelectAfterRefresh then
+    local categoryWidget = gameStoreWindow:getChildById("categoriesList"):getChildById(categoryToSelectAfterRefresh)
+    if categoryWidget then
+      select(categoryWidget:getChildById("button"))
+    end
+    categoryToSelectAfterRefresh = nil
+  end
+
   if not selected and data.category == "Premium Time" then
     select(gameStoreWindow:getChildById("categoriesList"):getChildren()[1]:getChildById("button"))
   end
@@ -679,9 +689,48 @@ function onGameStoreMsg(data)
 
   local title = nil
   local close = false
+  local function clearStoreUI()
+    local categoriesList = gameStoreWindow:getChildById("categoriesList")
+    if categoriesList then
+      categoriesList:destroyChildren()
+    end
+
+    offers = {}
+    categories = {}
+    selected = nil
+    selectedOffer = nil
+
+    local offersList = gameStoreWindow:getChildById("offers"):getChildById("offersList")
+    if offersList then
+      offersList:destroyChildren()
+    end
+
+    local offerDetails = gameStoreWindow:getChildById("offers"):getChildById("offerDetails")
+    if offerDetails then
+      offerDetails:hide()
+    end
+  end
+
+  local function requestStoreRefresh()
+    local protocolGame = g_game.getProtocolGame()
+    if protocolGame then
+      protocolGame:sendExtendedOpcode(GAME_STORE_CODE, json.encode({ action = "fetch", data = {} }))
+    else
+      print("[GameStore] Cannot refresh — no active protocol.")
+    end
+  end
+
   if type == "info" then
     title = "Store Information"
     close = data.close
+
+    if selected then
+      categoryToSelectAfterRefresh = selected:getId()
+    end
+
+    clearStoreUI()
+    requestStoreRefresh()
+
   elseif type == "error" then
     title = "Store Error"
     close = true
