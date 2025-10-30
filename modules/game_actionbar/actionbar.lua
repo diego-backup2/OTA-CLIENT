@@ -2,6 +2,8 @@ local actionBars = {}
 local settings = {}
 local settingsFile = ""
 local cachedSettings = nil
+local equippedItems = {}
+local itemIdMap = {}
 local window = nil
 local mouseGrabberWidget = nil
 
@@ -1161,11 +1163,51 @@ function setupAction(widget)
           if exhausted == true then
             return
           end
+
+          local buttonId = widget:getId()
+          local equippedInfo = equippedItems[buttonId]
+
+          if equippedInfo then
+            local player = g_game.getLocalPlayer()
+            local item = player:getInventoryItem(equippedInfo.slot)
+            if item and (item:getId() == equippedInfo.id or item:getId() == itemIdMap[equippedInfo.id]) then
+                g_game.equipItem(item)
+                print(item:getId())
+                return
+            end
+          end
+
           local item = Item.create(widget.item:getItemId())
+          local originalId = item:getId()
+
+          local beforeEquip = getEquippedItems()
+
+          g_game.equipItem(item)
+          scheduleEvent(function()
+              local afterEquip = getEquippedItems()
+              local newSlot = -1
+              local newId = -1
+
+              for slot, id in pairs(afterEquip) do
+                if not beforeEquip[slot] or beforeEquip[slot] ~= id then
+                  newSlot = slot
+                  newId = id
+                  break
+                end
+              end
+
+              if newSlot ~= -1 then
+                if newId ~= originalId then
+                  itemIdMap[originalId] = newId
+                end
+                equippedItems[buttonId] = {slot = newSlot, id = newId}
+              end
+          end, 100)
+
+
           scheduleEvent(function() exhausted = false end, 300)
           exhausted = true
-          return g_game.equipItem(item)
-        end
+     end
       elseif widget.action == ACTION.USE then
         if g_game.getClientVersion() < 780 then
           local item = g_game.findPlayerItem(widget.item:getItemId(), widget.item:getItemSubType() or -1)
@@ -1366,4 +1408,18 @@ function unbindExistingHotkey(hotkey, currentWidgetId)
   settings[boundWidgetId].hotkey = ""
 
   setupButton(targetWidget)
+end
+
+function getEquippedItems()
+  local equipped = {}
+  local player = g_game.getLocalPlayer()
+
+  for i = InventorySlotFirst, InventorySlotLast do
+    local item = player:getInventoryItem(i)
+    if item then
+      equipped[i] = item:getId()
+    end
+  end
+
+  return equipped
 end
