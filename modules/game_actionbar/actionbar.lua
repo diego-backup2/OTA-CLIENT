@@ -5,6 +5,70 @@ local cachedSettings = nil
 local window = nil
 local mouseGrabberWidget = nil
 
+if not inventoryItems then
+    inventoryItems = nil
+    inventoryItems_ = nil
+end
+
+local exhausted = false
+
+function onInventoryInfo(items)
+  inventoryItems_ = items
+  inventoryItems = {}
+  for k, v in pairs(items) do
+    inventoryItems[v[1]] = v[2]
+  end
+  for index, panel in ipairs(actionBars) do
+    for i, child in ipairs(panel.tabBar:getChildren()) do
+      if child.item:isOn() then
+        local amount = getInventoryItemCount(child.item:getItemId(), child.item:getItemCountOrSubType())
+        child.item:setColor("#ffffff")
+        child.item.changing = true
+        if amount == 0 then
+          child.item:setItem(Item.create(child.item:getItemId(), math.max(0, math.min(100, amount))))
+          child.item:setColor("#ffffff5A")
+          child.amount:setText("")
+        else
+          child.item:setItem(Item.create(child.item:getItemId(), math.max(0, math.min(100, amount))))
+          child.amount:setText(formatNumber(amount))
+        end
+        child.item.changing = false
+        scheduleEvent(function()
+          local player = g_game.getLocalPlayer()
+          for i = InventorySlotFirst, InventorySlotPurse do
+            if player:getInventoryItem(i) and player:getInventoryItem(i):getId() == child.item:getItemId() then
+              child.item.onHoverChange = function(widget, hovered)
+                -- scheduleEvent(function()
+                -- widget:setImageClip(torect("0 46 22 23"))
+                -- end, 0)
+              end
+              break
+            end
+          end
+        end, 20)
+      end
+    end
+  end
+end
+
+function formatNumber(amount)
+  if amount >= 1000000 then
+    return math.floor(amount / 1000000) .. "KK"
+  elseif amount >= 10000 then
+    return math.floor(amount / 1000) .. "K"
+  end
+  return amount
+end
+
+function getInventoryItemCount(itemId, subType)
+  local data = inventoryItems[itemId]
+  if data then
+    return data
+  end
+
+  return 0
+end
+
 local TYPE = {
   BLANK = 0,
   TEXT = 1,
@@ -22,7 +86,7 @@ local ACTION = {
 }
 
 -- servers may have different id's, change if not working properly (only for protocols 910+)
-local function translateVocation(id) 
+local function translateVocation(id)
   if id == 1 or id == 11 then
     return 8 -- ek
   elseif id == 2 or id == 12 then
@@ -65,8 +129,15 @@ function init()
     onGameStart = online,
     onGameEnd = offline,
     onSpellGroupCooldown = onSpellGroupCooldown,
-    onSpellCooldown = onSpellCooldown
+    onSpellCooldown = onSpellCooldown,
+    onInventoryInfo = onInventoryInfo
   })
+
+  if inventoryItems_ ~= nil then
+    scheduleEvent(function()
+      onInventoryInfo(inventoryItems_)
+    end, 10)
+  end
 
   if g_game.isOnline() then
     online()
@@ -84,7 +155,8 @@ function terminate()
     onGameStart = online,
     onGameEnd = offline,
     onSpellGroupCooldown = onSpellGroupCooldown,
-    onSpellCooldown = onSpellCooldown
+    onSpellCooldown = onSpellCooldown,
+    onInventoryInfo = onInventoryInfo
   })
 end
 
@@ -381,6 +453,7 @@ function setupButton(widget)
   widget.spellData = nil
   widget.item:setItemVisible(true)
   widget.text:setImageSource('')
+  widget.amount:setText("")
   widget.hotkey = config and config.hotkey or ""
   widget.callback = nil
   widget.lastExecution = 0
@@ -391,7 +464,15 @@ function setupButton(widget)
     widget.type = config.type
     widget.text:setText(config.sayText or "")
     if widget.item:getItemId() ~= (config.itemId and config.itemId > 100 and config.itemId or 0) then
-      widget.item:setItem(Item.create(config.itemId, 50))
+      widget.item:setItem(Item.create(config.itemId))
+      if inventoryItems ~= nil then
+        local amount = getInventoryItemCount(widget.item:getItemId(), widget.item:getItemCountOrSubType())
+        widget.item:setItemCount(amount)
+        widget.amount:setText(amount > 0 and amount or "")
+        if inventoryItems_ ~= nil then
+          onInventoryInfo(inventoryItems_)
+        end
+      end
     end
     widget.sayText = config.sayText
     widget.autoSay = config.autoSay
@@ -454,8 +535,10 @@ function setupButton(widget)
   end
 
   widget.item.onItemChange = function(widget)
-    widget:setOn(true)
-    assignItem(widget:getParent())
+    if not widget.changing or widget.changing == false then
+      widget:setOn(true)
+      assignItem(widget:getParent())
+    end
   end
 
   -- tooltip
@@ -522,6 +605,9 @@ function resetSlot(widget)
 end
 
 function assignItem(widget)
+  if not widget.item then
+    return
+  end
   destroyAssignWindows()
   local radio = UIRadioGroup.create()
   local item = widget.item:getItem()
@@ -539,7 +625,7 @@ function assignItem(widget)
   window:focus()
 
   -- basics
-  window:setText("Assign Object to Action Button "..widget:getId())
+  window:setText("Assign Object")
   window:setId("assignItemWindow")
 
   -- select item
@@ -566,10 +652,11 @@ function assignItem(widget)
           if check then
             radio:selectWidget(child)
           end
-        elseif g_game.getClientVersion() >= 910 then
+         elseif g_game.getClientVersion() >= 700 then
           if i == 4 then
   --           local check = item:getClothSlot() > 0
-            local check = true -- unfortunately two handed weapons returns cloth 0, so we have to disable this check
+            local check = not item:isStackable() -- unfortunately two handed weapons returns cloth 0, so we have to disable this check
+            print(child:getText(), item:isStackable(), check)
             child:setEnabled(check)
             if check then
               radio:selectWidget(child)
@@ -1070,8 +1157,13 @@ function setupAction(widget)
       if widget.action == ACTION.BLANK then
         return
       elseif widget.action == ACTION.EQUIP then
-        if g_game.getClientVersion() >= 910 then
+        if g_game.getClientVersion() >= 700 then
+          if exhausted == true then
+            return
+          end
           local item = Item.create(widget.item:getItemId())
+          scheduleEvent(function() exhausted = false end, 300)
+          exhausted = true
           return g_game.equipItem(item)
         end
       elseif widget.action == ACTION.USE then

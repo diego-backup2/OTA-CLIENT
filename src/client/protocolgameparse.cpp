@@ -2753,12 +2753,16 @@ void ProtocolGame::parseItemInfo(const InputMessagePtr& msg)
 
 void ProtocolGame::parsePlayerInventory(const InputMessagePtr& msg)
 {
+    std::vector<std::tuple<int, int> > inventory;
     int size = msg->getU16();
     for (int i = 0; i < size; ++i) {
-        msg->getU16(); // id
+        int itemId = msg->getU16(); // id
         msg->getU8(); // subtype
-        msg->getU16(); // count
+        int itemCount = msg->getU16(); // count
+        inventory.push_back(std::make_tuple(itemId, itemCount));
     }
+    g_lua.callGlobalField("g_game", "onInventoryInfo", inventory);
+
 }
 
 void ProtocolGame::parseModalDialog(const InputMessagePtr& msg)

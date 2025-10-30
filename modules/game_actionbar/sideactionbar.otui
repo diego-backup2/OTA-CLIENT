@@ -39,6 +39,17 @@ SideActionButton < UIButton
     font: verdana-9px
 
   Label
+    id: amount
+    anchors.bottom: parent.bottom
+    anchors.right: parent.right
+    margin-right: 3
+    margin-bottom: 1
+    font: verdana-11px-rounded
+    text-align: right
+    color: #ffffff
+    phantom: true
+
+  Label
     id: hotkeyLabel
     anchors.top: parent.top
     anchors.right: parent.right

@@ -3,7 +3,7 @@ ActionButton < UIButton
   width: 36
   padding: 1
   margin-left: 1
-    
+
   Item
     id: item
     anchors.fill: parent
@@ -14,7 +14,7 @@ ActionButton < UIButton
     border-width: 1
     border-color: #00000000
     draggable: true
-    
+
     $!on:
       image-source: /images/game/actionbar/actionbarslot
       image-color: #dfdfdf
@@ -39,6 +39,17 @@ ActionButton < UIButton
     margin: 1
     text-align: center
     font: verdana-9px
+
+  Label
+    id: amount
+    anchors.bottom: parent.bottom
+    anchors.right: parent.right
+    margin-right: 3
+    margin-bottom: 1
+    font: verdana-11px-rounded
+    text-align: right
+    color: #ffffff
+    phantom: true
 
   Label
     id: hotkeyLabel
@@ -73,6 +84,9 @@ ActionButton < UIButton
     anchors.fill: parent
     font: verdana-11px-rounded
     color: white
+
+
+SideActionButton < ActionButton
 
 LeftSliders < Panel
   size: 17 34
@@ -125,7 +139,7 @@ LeftSliders < Panel
 
 RightSliders < Panel
   size: 29 34
-  
+
   Button
     id: lock
     anchors.top: parent.top
@@ -145,7 +159,7 @@ RightSliders < Panel
       anchors.centerIn: parent
       margin-right: 1
       phantom: true
-      
+
       $!on:
         image-source: /images/game/actionbar/locked
 
@@ -212,18 +226,18 @@ RightSliders < Panel
 
       $on:
         image-source: /images/game/actionbar/arrow-skip
-  
+
 Panel
   id: actionBar
   focusable: false
   image-source: /images/ui/actionbar_background
   image-border: 1
   margin-top: -1
-  
+
   $on:
     height: 40
     visible: true
-    
+
   $!on:
     height: 0
     visible: false
@@ -233,7 +247,7 @@ Panel
     anchors.left: parent.left
     anchors.verticalCenter: parent.verticalCenter
     margin-left: 1
-    
+
   ScrollablePanel
     id: tabBar
     anchors.top: parent.top
