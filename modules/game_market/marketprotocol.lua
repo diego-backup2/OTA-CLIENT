@@ -39,36 +39,10 @@ end
 
 -- parsing protocols
 local function parseMarketEnter(protocol, msg)
-  local items
-  if g_game.getClientVersion() < 944 then
-    items = {}
-    local itemsCount = msg:getU16()
-    for i = 1, itemsCount do
-      local itemId = msg:getU16()
-      local category = msg:getU8()
-      local name = msg:getString()
-      table.insert(items, {
-        id = itemId,
-        category = category,
-        name = name
-      })
-    end    
-  end
-  
-  local balance = 0
-  if g_game.getProtocolVersion() <= 1250 or not g_game.getFeature(GameTibia12Protocol) then
-    if g_game.getProtocolVersion() >= 981 or g_game.getProtocolVersion() < 944 then
-      balance = msg:getU64()
-    else
-      balance = msg:getU32()
-    end
-  end
-  
   local vocation = -1
-  if g_game.getProtocolVersion() >= 944 and g_game.getProtocolVersion() < 950 then
-    vocation = msg:getU8() -- get vocation id
-  end
+  local items
   local offers = msg:getU8()
+  local balance = msg:getU32()
 
   local depotItems = {}
   local depotCount = msg:getU16()

@@ -186,7 +186,7 @@ local function addOffer(offer, offerType)
   local amount = offer:getAmount()
   local price = offer:getPrice()
   local timestamp = offer:getTimeStamp()
-  local itemName = marketItemNames[offer:getItem():getId()]
+  local itemName = marketItemNames[offer:getItem():getId()].name
   if not itemName then
     itemName = offer:getItem():getMarketData().name
   end
@@ -360,7 +360,7 @@ local function updateHistoryOffers(offers)
     local amount = offer:getAmount()
     local price = offer:getPrice()
     local timestamp = offer:getTimeStamp()
-    local itemName = marketItemNames[offer:getItem():getId()]
+    local itemName = marketItemNames[offer:getItem():getId()].name
     if not itemName then
       itemName = offer:getItem():getMarketData().name
     end
@@ -750,35 +750,73 @@ local function initMarketItems(items)
   local itemSet = {}
   
   -- parse items send by server
-  if items then
-    for _, entry in ipairs(items) do
-      local item = Item.create(entry.id)
-      local thingType = g_things.getThingType(entry.id, ThingCategoryItem)
-      if item and thingType and not marketItemNames[entry.id] then
-        -- create new marketItem block
-        local marketItem = {
-          displayItem = item,
-          thingType = thingType,
-          marketData = {
-            name = entry.name,
-            category = entry.category,
-            requiredLevel = 0,
-            restrictVocation = 0,
-            showAs = entry.id,
-            tradeAs = entry.id
-          }
-        }
+  -- if items then
+  --   for _, entry in ipairs(items) do
+  --     local item = Item.create(entry.id)
+  --     local thingType = g_things.getThingType(entry.id, ThingCategoryItem)
+  --     if item and thingType and not marketItemNames[entry.id] then
+  --       -- create new marketItem block
+  --       local marketItem = {
+  --         displayItem = item,
+  --         thingType = thingType,
+  --         marketData = {
+  --           name = entry.name,
+  --           category = entry.category,
+  --           requiredLevel = 0,
+  --           restrictVocation = 0,
+  --           showAs = entry.id,
+  --           tradeAs = entry.id
+  --         }
+  --       }
      
-        -- add new market item
-        if marketItems[entry.category] ~= nil then
-          table.insert(marketItems[entry.category], marketItem)
-          marketItemNames[entry.id] = entry.name
+  --       -- add new market item
+  --       if marketItems[entry.category] ~= nil then
+  --         table.insert(marketItems[entry.category], marketItem)
+  --         marketItemNames[entry.id] = entry.name
+  --       end
+  --     end
+  --   end
+  --   Market.updateCategories()
+  --   return
+  -- end
+
+    -- parse items send by server
+    if marketItemsDatabase then
+
+      for _, marketItemData in pairs(marketItemsDatabase) do
+        local itemId = marketItemData.showAs
+        local item = Item.create(itemId)
+        local thingType = g_things.getThingType(itemId, ThingCategoryItem)
+  
+        if item and thingType then
+          -- Some items use a different sprite in Market
+          item:setId(itemId)
+  
+          -- create new marketItem block
+          local marketItem = {
+            displayItem = item,
+            thingType = thingType,
+            marketData = {
+              name = marketItemData.name,
+              category = marketItemData.category,
+              requiredLevel = 0,
+              restrictVocation = 0,
+              showAs = marketItemData.showAs,
+              tradeAs = marketItemData.tradeAs
+            }
+          }
+  
+          -- add new market item
+          if marketItems[marketItemData.category] ~= nil then
+            table.insert(marketItems[marketItemData.category], marketItem)
+            marketItemNames[itemId] = marketItemData.name
+          end
         end
       end
+  
+      Market.updateCategories()
+      return
     end
-    Market.updateCategories()
-    return
-  end
 
   -- populate all market items
   local types = g_things.findThingTypeByAttr(ThingAttrMarket, 0)
@@ -1046,7 +1084,7 @@ function Market.updateCategories()
       categoryList:addOption(c)
   end
   
-  for i = MarketCategory.Ammunition, MarketCategory.WandsRods do
+  for i = MarketCategory.WandsAndRods, MarketCategory.Ammunition do
     subCategoryList:addOption(getMarketCategoryName(i))
   end
   
