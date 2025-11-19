@@ -1,6 +1,6 @@
 function executeBot(config, storage, tabs, msgCallback, saveConfigCallback, reloadCallback, websockets)
   -- load lua and otui files
-  local configFiles = g_resources.listDirectoryFiles("/modules/game_bot/default_config", true, false)  
+  local configFiles = g_resources.listDirectoryFiles("/bot/" .. config, true, false)  
   local luaFiles = {}
   local uiFiles = {}
   for i, file in ipairs(configFiles) do
@@ -14,12 +14,12 @@ function executeBot(config, storage, tabs, msgCallback, saveConfigCallback, relo
   end
   
   if #luaFiles == 0 then
-    return error("Config (modules/game_bot/default_config" .. ") doesn't have lua files")
+    return error("Config (/bot/" .. config .. ") doesn't have lua files")
   end
   
   -- init bot variables
   local context = {}
-  context.configDir = "/modules/game_bot/".. config
+  context.configDir = "/bot/".. config
   context.tabs = tabs
   context.mainTab = context.tabs:addTab("Main", g_ui.createWidget('BotPanel')).tabPanel.content
   context.panel = context.mainTab
@@ -99,7 +99,7 @@ function executeBot(config, storage, tabs, msgCallback, saveConfigCallback, relo
   context.load = function(str) return assert(load(str, nil, nil, context)) end
   context.loadstring = context.load
   context.assert = assert
-  context.dofile = function(file) assert(load(g_resources.readFileContents("/modules/game_bot/default_config" .. "/" .. file), file, nil, context))() end
+  context.dofile = function(file) assert(load(g_resources.readFileContents("/bot/" .. config .. "/" .. file), file, nil, context))() end
   context.gcinfo = gcinfo
   context.tr = tr
   context.json = json

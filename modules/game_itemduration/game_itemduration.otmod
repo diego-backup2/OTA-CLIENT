@@ -1,0 +1,6 @@
+Module
+  name: game_itemduration
+  author: Gemini
+  description: Shows the duration of items.
+  scripts:
+    - game_itemduration.lua

@@ -126,9 +126,16 @@ function refresh()
   if not g_game.isOnline() then return end
   save()
   clear()
-  
-  -- get list of configs
-  local configs = { "default_config" }
+
+  if not g_resources.directoryExists("/bot") then
+    g_resources.makeDir("/bot")
+    if not g_resources.directoryExists("/bot") then
+      return onError("Can't create bot directory in " .. g_resources.getWriteDir())
+    end
+  end
+
+  createDefaultConfigs()
+  local configs = g_resources.listDirectoryFiles("/bot", false, false)  
   
   -- clean
   configList.onOptionChange = nil
@@ -182,6 +189,11 @@ function refresh()
   -- storage
   botStorage = {}
   
+  local path = "/bot/" .. configName .. "/storage/"
+  if not g_resources.directoryExists(path) then
+    g_resources.makeDir(path)
+  end
+
   botStorageFile = Profiles.getFilePath("bot.json")
   if g_resources.fileExists(botStorageFile) then
     local status, result = pcall(function() 
@@ -217,7 +229,7 @@ function save()
   if settings[index] == nil then
     return
   end
-
+  
   local status, result = pcall(function() 
     return json.encode(botStorage, 2) 
   end)
@@ -266,7 +278,7 @@ function onError(message)
 end
 
 function edit()
-  local configs = { "default_config" }
+  local configs = g_resources.listDirectoryFiles("/bot", false, false)  
   editWindow.manager.upload.config:clearOptions()  
   for i=1,#configs do 
     editWindow.manager.upload.config:addOption(configs[i])
@@ -276,6 +288,44 @@ function edit()
   editWindow:show()
   editWindow:focus()
   editWindow:raise()
+end
+
+function createDefaultConfigs()
+  local defaultConfigFiles = g_resources.listDirectoryFiles("default_configs", false, false)
+  for i, config_name in ipairs(defaultConfigFiles) do
+    if not g_resources.directoryExists("/bot/" .. config_name) then
+      g_resources.makeDir("/bot/" .. config_name)
+      if not g_resources.directoryExists("/bot/" .. config_name) then
+        return onError("Can't create /bot/" .. config_name .. " directory in " .. g_resources.getWriteDir())
+      end
+
+      local defaultConfigFiles = g_resources.listDirectoryFiles("default_configs/" .. config_name, true, false)
+      for i, file in ipairs(defaultConfigFiles) do
+        local baseName = file:split("/")
+        baseName = baseName[#baseName]
+        if g_resources.directoryExists(file) then
+          g_resources.makeDir("/bot/" .. config_name .. "/" .. baseName)
+          if not g_resources.directoryExists("/bot/" .. config_name .. "/" .. baseName) then
+            return onError("Can't create /bot/" .. config_name  .. "/" .. baseName .. " directory in " .. g_resources.getWriteDir())
+          end
+          local defaultConfigFiles2 = g_resources.listDirectoryFiles("default_configs/" .. config_name .. "/" .. baseName, true, false)
+          for i, file in ipairs(defaultConfigFiles2) do
+            local baseName2 = file:split("/")
+            baseName2 = baseName2[#baseName2]
+            local contents = g_resources.fileExists(file) and g_resources.readFileContents(file) or ""
+            if contents:len() > 0 then
+              g_resources.writeFileContents("/bot/" .. config_name .. "/" .. baseName .. "/" .. baseName2, contents)
+            end  
+          end
+        else
+          local contents = g_resources.fileExists(file) and g_resources.readFileContents(file) or ""
+          if contents:len() > 0 then
+            g_resources.writeFileContents("/bot/" .. config_name .. "/" .. baseName, contents)
+          end
+        end
+      end
+    end
+  end
 end
 
 function uploadConfig()
@@ -327,12 +377,51 @@ function downloadConfig()
 end
 
 function compressConfig(configName)
-  print("Disabled for on use!")
-  return false
+  if not g_resources.directoryExists("/bot/" .. configName) then
+    return onError("Config " .. configName .. " doesn't exist")
+  end
+  local forArchive = {}
+  for _, file in ipairs(g_resources.listDirectoryFiles("/bot/" .. configName)) do
+    local fullPath = "/bot/" .. configName .. "/" .. file
+    if g_resources.fileExists(fullPath) then -- regular file
+        forArchive[file] = g_resources.readFileContents(fullPath)
+    else -- dir
+      for __, file2 in ipairs(g_resources.listDirectoryFiles(fullPath)) do
+        local fullPath2 = fullPath .. "/" .. file2
+        if g_resources.fileExists(fullPath2) then -- regular file
+            forArchive[file .. "/" .. file2] = g_resources.readFileContents(fullPath2)
+        end
+      end
+    end
+  end
+  return g_resources.createArchive(forArchive)
 end
 
 function decompressConfig(configName, archive)
-  print("Disabled for on use!")
+  if g_resources.directoryExists("/bot/" .. configName) then
+    g_resources.deleteFile("/bot/" .. configName) -- also delete dirs
+  end
+  local files = g_resources.decompressArchive(archive)
+  g_resources.makeDir("/bot/" .. configName)
+  if not g_resources.directoryExists("/bot/" .. configName) then
+    return onError("Can't create /bot/" .. configName .. " directory in " .. g_resources.getWriteDir())
+  end
+  
+  for file, contents in pairs(files) do
+    local split = file:split("/")
+    split[#split] = nil -- remove file name
+    local dirPath = "/bot/" .. configName
+    for _, s in ipairs(split) do
+      dirPath = dirPath .. "/" .. s
+      if not g_resources.directoryExists(dirPath) then
+        g_resources.makeDir(dirPath)
+        if not g_resources.directoryExists(dirPath) then
+          return onError("Can't create " .. dirPath .. " directory in " .. g_resources.getWriteDir())
+        end
+      end
+    end
+    g_resources.writeFileContents("/bot/" .. configName .. file, contents)
+  end
 end
 
 -- Executor

@@ -1,0 +1,388 @@
+uuid: T5+TJ3Dhdc9MLs9GqDt6iWUBXco=
+extras_debugPathfinding: false
+extras_debugPredictiveWalking: false
+extras_debugProxy: false
+extras_debugRender: false
+extras_debugWalking: false
+extras_debugWidgets: false
+extras_disablePredictiveWalking: false
+extras_limitedPolling: true
+extras_showPredictions: false
+report-uuid: 2719f376-fcb7-443f-ada2-7478e56e329e
+VipList:
+  VipInfo:
+autoReconnect: false
+game_interface:
+  splitterMarginBottom: 284
+game_console:
+  messageHistory:
+    94: hi
+    26: hhh
+    34: asdf
+    13: /m diego
+    87: yes
+    116: hi
+    93: yes
+    90: yes
+    73: venore
+    88: hi
+    20: /goto orshabaal
+    119: folda
+    41: hhh
+    1: 1111
+    2: /i energy ring
+    3: /i tibia coin
+    4: /i roulette coin
+    5: w
+    6: /i magic plate armor
+    7: /i tibia coin
+    8: /i tibia coin
+    9: oi
+    10: asdf
+    121: venore
+    28: asdf
+    82: hi
+    107: folda
+    117: yes
+    37: asdf
+    49: asdf
+    120: yes
+    92: hi
+    70: venore
+    110: hi
+    111: yes
+    17: 4
+    127: venore
+    18: /c diego
+    78: yes
+    125: folda
+    56: hhh
+    21: /t
+    131: folda
+    108: yes
+    31: asdf
+    32: hhh
+    55: asdf
+    11: !online
+    83: folda
+    81: yes
+    136: hi
+    115: venore
+    100: hi
+    42: gggghghhhh
+    75: yes
+    36: gggghghhhh
+    126: yes
+    25: asdf
+    130: hi
+    77: folda
+    59: hhh
+    102: yes
+    66: yes
+    124: hi
+    134: hi
+    74: hi
+    96: yes
+    106: hi
+    71: hi
+    54: gggghghhhh
+    132: yes
+    86: hi
+    24: gggghghhhh
+    109: venore
+    76: hi
+    39: gggghghhhh
+    53: hhh
+    122: hi
+    85: venore
+    133: venore
+    44: hhh
+    27: gggghghhhh
+    91: venore
+    98: hi
+    112: hi
+    129: yes
+    60: gggghghhhh
+    57: gggghghhhh
+    23: hhh
+    43: asdf
+    50: hhh
+    128: hi
+    69: yes
+    19: /c orshabaal
+    65: hi
+    40: asdf
+    118: hi
+    16: /c orshabaal
+    62: hhh
+    114: yes
+    99: yes
+    64: venore
+    12: /goto diego
+    63: gggghghhhh
+    68: folda
+    67: hi
+    51: gggghghhhh
+    84: yes
+    48: gggghghhhh
+    22: /a 2
+    103: venore
+    15: /m a
+    104: hi
+    113: folda
+    61: asdf
+    95: folda
+    47: hhh
+    35: hhh
+    33: gggghghhhh
+    30: gggghghhhh
+    45: gggghghhhh
+    97: venore
+    29: hhh
+    46: asdf
+    80: hi
+    14: /c diego
+    38: hhh
+    58: asdf
+    123: yes
+    135: yes
+    52: asdf
+    138: yes
+    105: yes
+    89: folda
+    101: folda
+    137: folda
+    79: venore
+    72: yes
+UseIgnoreList: false
+UseWhiteList: false
+IgnorePrivateMessages: false
+IgnoreYelling: false
+IgnorePlayers:
+WhitelistedPlayers:
+terminal-history:
+  - clear
+  - clçear
+  - clear
+terminal-window:
+  poped: false
+window-size: 600 480
+window-pos: 980 480
+window-maximized: true
+controls-presets:
+  - Default
+  - Char
+  - Taes
+  - Jonas Um
+  - Joaoteste
+  - Test
+  - Novo Jonas
+  - John Doe One
+  - qrqr
+controls-preset-current: John Doe One
+locale: en
+walkCtrlTurnDelay: 150
+topBar: false
+actionbar1: true
+actionbar2: true
+chatMode: 1
+actionbar4: true
+actionbar5: true
+actionbar6: true
+actionbar7: true
+actionbar8: true
+actionbar9: true
+actionbarLock: false
+antialiasing: true
+floorShadow: true
+autoSwitchPreset: true
+actionbar3: true
+botSoundVolume: 100
+showLevelsInConsole: true
+classicControl: true
+showStatusMessagesInConsole: true
+hotkeyDelay: 200
+vsync: true
+showFps: true
+fullscreen: false
+classicView: true
+cacheMap: false
+smartWalk: false
+dash: false
+autoChaseOverride: true
+enableAudio: true
+showEventMessagesInConsole: true
+showInfoMessagesInConsole: true
+showTimestampsInConsole: true
+layout: retro
+showPrivateMessagesInConsole: true
+showPrivateMessagesOnScreen: true
+containerPanel: 8
+backgroundFrameRate: 60
+enableMusicSound: false
+musicSoundVolume: 100
+showPing: true
+enableLights: false
+floorFading: 500
+crosshair: 1
+ambientLight: 100
+optimizationLevel: 1
+displayNames: true
+displayHealth: true
+displayMana: true
+displayHealthOnTop: true
+showHealthManaCircle: false
+hidePlayerBars: true
+highlightThingsUnderCursor: false
+topHealtManaBar: false
+displayText: true
+dontStretchShrink: false
+turnDelay: 30
+actionbarWidgetDelay: 200
+walkFirstStepDelay: 200
+walkTurnDelay: 100
+walkStairsDelay: 50
+walkTeleportDelay: 200
+host: 212.85.13.192:7171
+server: Another
+client-version: 860
+things:
+  sprites: 860/Tibia.spr
+  data: 860/Tibia.dat
+account: S971OBjr2L0A6Hk=
+password: 1t7SOhvs27QL7Cpc
+lastChannelsOpen:
+LastCombatControls:
+  qrqr:
+    fightMode: 2
+    chaseMode: 0
+    safeFight: true
+  Joaoteste:
+    fightMode: 2
+    chaseMode: 0
+    safeFight: true
+  Char:
+    fightMode: 2
+    chaseMode: 0
+    safeFight: true
+  Taes:
+    fightMode: 2
+    chaseMode: 0
+    safeFight: true
+  Jonas Um:
+    fightMode: 2
+    chaseMode: 0
+    safeFight: true
+  Test:
+    fightMode: 2
+    chaseMode: 0
+    safeFight: true
+  Novo Jonas:
+    fightMode: 2
+    chaseMode: 0
+    safeFight: true
+  John Doe One:
+    fightMode: 1
+    chaseMode: 0
+    safeFight: true
+Minimap:
+  zoom: 0
+  flags:
+last-used-character: qrqr
+last-used-world: Xangel Server
+leftPanels: 2
+rightPanels: 2
+MiniWindows:
+  container0:
+    height: 55
+  container2:
+    height: 55
+  container1:
+    height: 55
+  skillWindow:
+    index: 8
+    parentId: widget456
+    closed: false
+  healthInfoWindow:
+    index: 2
+    parentId: widget456
+  cooldownWindow:
+    index: 4
+    parentId: widget456
+    closed: true
+  battleWindow:
+    index: 5
+    parentId: widget456
+    closed: false
+  buttons:
+    index: 3
+    parentId: widget456
+    height: 48
+  vipWindow:
+    index: 6
+    parentId: widget456
+  minimapWindow:
+    index: 1
+    parentId: widget456
+  unjustifiedPointsWindow:
+    index: 9
+    parentId: widget456
+    closed: true
+  botWindow:
+    parentId: leftPanel1
+    index: 1
+    closed: false
+    position: 75 56
+    height: 844.5
+  inventoryWindow:
+    index: 7
+    parentId: widget456
+bot:
+  Test_860:
+    enabled: true
+    botWindow:
+      visible: false
+      parent: leftPanel1
+    config: default_config
+  Joaoteste_860:
+    enabled: true
+    botWindow:
+      visible: false
+      parent: leftPanel1
+    config: default_config
+  Novo Jonas_860:
+    enabled: true
+    botWindow:
+      visible: false
+      parent: leftPanel1
+    config: default_config
+  Jonas Um_860:
+    enabled: true
+    botWindow:
+      visible: false
+      parent: leftPanel1
+    config: default_config
+  Char_860:
+    enabled: true
+    botWindow:
+      visible: false
+      parent: leftPanel1
+    config: default_config
+  qrqr_860:
+    enabled: true
+    botWindow:
+      parent: leftPanel1
+      visible: false
+    config: vBot_4.7
+  John Doe One_860:
+    enabled: true
+    botWindow:
+      parent: leftPanel1
+      visible: false
+    config: vBot_4.8
+  Taes_860:
+    enabled: true
+    botWindow:
+      visible: false
+      parent: leftPanel1
+    config: default_config

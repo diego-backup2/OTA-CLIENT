@@ -1,0 +1,4 @@
+out/
+vc17/
+.vs/
+vcpkg_installed/
