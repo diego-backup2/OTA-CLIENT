@@ -307,7 +307,6 @@ function addCategory(data)
   end
 
   category:setId(data.title)
-  print(data.iconId)
   category:getChildById("button"):setIconClip(data.iconId * 13 .. " 0 13 13")
   category:getChildById("name"):setText(data.title)
 end
