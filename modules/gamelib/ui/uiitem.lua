@@ -45,6 +45,18 @@ function UIItem:onDrop(widget, mousePos, forced)
   end
 
   self:setBorderWidth(0)
+  local id = self:getItemId()
+  local price = 0
+
+  if modules.game_rarity and id ~= 0 then -- there's item
+      price = modules.game_rarity.getPriceByClientId(id)
+
+      -- set rarity frame
+      self:setImageSource(modules.game_rarity.getFrame(price))
+  else -- empty widget
+      -- revert any possible changes
+      self:setImageSource("/images/ui/item")
+  end
   return true
 end
 
