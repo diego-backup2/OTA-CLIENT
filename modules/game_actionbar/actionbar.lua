@@ -1332,6 +1332,7 @@ function updateCooldown(action)
 end
 
 function save()
+  if not settingsFile or #settingsFile == 0 then return end
   local status, result = pcall(function() return json.encode(settings, 2) end)
   if not status then
       return g_logger.error(
