@@ -380,6 +380,7 @@ function showOffers(id)
   end
 
   local currentOutfit = g_game.getLocalPlayer():getOutfit()
+  currentOutfit.mount = 0
   local offersPanel = gameStoreWindow:getChildById("offers")
   local offersList = offersPanel:getChildById("offersList")
   offersList:destroyChildren()
@@ -531,6 +532,7 @@ function updateDescription(self)
   end
 
   local currentOutfit = g_game.getLocalPlayer():getOutfit()
+  currentOutfit.mount = 0
   local imagePanel = offerDetails:getChildById("imagePanel")
   local image = imagePanel:getChildById("image")
   local item = imagePanel:getChildById("item")
@@ -540,6 +542,7 @@ function updateDescription(self)
   item:hide()
   outfit:hide()
   mount:hide()
+
   if type(self.data.id) == "string" then
     image:show()
     image:setImageSource("/images/store/" .. self.data.id)
