@@ -143,14 +143,16 @@ bool ResourceManager::launchCorrect(const std::string& product, const std::strin
 
 bool ResourceManager::setupWriteDir(const std::string& product, const std::string& app) {
     const char* localDir = nullptr;
+    std::string localDirStr;
 
 #ifdef ANDROID
     localDir = g_androidState->activity->internalDataPath;
 #else
     // Obtém o diretório do executável
-    std::string currentDir = g_platform.getCurrentDir();
+    std::filesystem::path binaryDir = m_binaryPath.parent_path();
+    std::string currentDir = binaryDir.string();
     if (currentDir.empty()) {
-        g_logger.fatal("Unable to get current directory.");
+        g_logger.fatal("Unable to get binary directory.");
         return false;
     }
 
@@ -167,10 +169,11 @@ bool ResourceManager::setupWriteDir(const std::string& product, const std::strin
     }
 
     // Define o diretório de escrita como a pasta de configuração
-    localDir = configPath.u8string().c_str();
+    localDirStr = configPath.u8string();
+    localDir = localDirStr.c_str();
 #endif
 
-    if (!localDir) {
+    if (!localDir || strlen(localDir) == 0) {
         g_logger.fatal(stdext::format("Unable to get local dir, error: %s", PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode())));
         return false;
     }
@@ -480,7 +483,11 @@ bool ResourceManager::isFileEncryptedOrCompressed(const std::string& fileName)
 
 bool ResourceManager::writeFileBuffer(const std::string& fileName, const uchar* data, uint size)
 {
+    if (fileName.empty())
+        return false;
+
     PHYSFS_file* file = PHYSFS_openWrite(fileName.c_str());
+
     if(!file) {
         g_logger.error(stdext::format("unable to open file for writing '%s': %s", fileName, PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode())));
         return false;
