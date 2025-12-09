@@ -1796,7 +1796,7 @@ function online()
   end
 
   if g_game.getClientVersion() < 862 then
-    Keybind.new("Dialogs", "Open Rule Violation", "Ctrl+R", "")
+    Keybind.new("Dialogs", "Open Rule Violation", "Ctrl+Y", "")
     local gameRootPanel = modules.game_interface.getRootPanel()
     Keybind.bind("Dialogs", "Open Rule Violation", {
       {
