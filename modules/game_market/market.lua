@@ -1,22 +1,3 @@
---[[
-    Finalizing Market:
-      Note: Feel free to work on any area and submit
-            it as a pull request from your git fork.
-
-      BeniS's Skype: benjiz69
-
-      List:
-      * Add offer management:
-        - Current Offers
-        - Offer History
-
-      * Clean up the interface building
-        - Add a new market interface file to handle building?
-
-      * Extend information features
-        - Hover over offers for purchase information (balance after transaction, etc)
-  ]]
-
 Market = {}
 
 local protocol = runinsandbox('marketprotocol')
@@ -124,7 +105,7 @@ local function isItemValid(item, category, searchFilter)
       return false
     end
   end
-  if filterDepot and Market.getDepotCount(item.marketData.tradeAs) <= 0 then
+  if filterDepot and Market.getDepotCount(item.marketData.showAs) <= 0 then
     return false
   end
   if searchFilter then
@@ -171,7 +152,7 @@ local function refreshTypeList()
   offerTypeList:addOption('Buy')
 
   if Market.isItemSelected() then
-    if Market.getDepotCount(selectedItem.item.marketData.tradeAs) > 0 then
+    if Market.getDepotCount(selectedItem.item.marketData.showAs) > 0 then
       offerTypeList:addOption('Sell')
     end
   end
@@ -186,7 +167,7 @@ local function addOffer(offer, offerType)
   local amount = offer:getAmount()
   local price = offer:getPrice()
   local timestamp = offer:getTimeStamp()
-  local itemName = marketItemNames[offer:getItem():getId()].name
+  local itemName = marketItemNames[offer:getItem():getId()]
   if not itemName then
     itemName = offer:getItem():getMarketData().name
   end
@@ -360,7 +341,7 @@ local function updateHistoryOffers(offers)
     local amount = offer:getAmount()
     local price = offer:getPrice()
     local timestamp = offer:getTimeStamp()
-    local itemName = marketItemNames[offer:getItem():getId()].name
+    local itemName = marketItemNames[offer:getItem():getId()]
     if not itemName then
       itemName = offer:getItem():getMarketData().name
     end
@@ -696,7 +677,7 @@ local function onChangeOfferType(combobox, option)
   local maximum = item.thingType:isStackable() and MarketMaxAmountStackable or MarketMaxAmount
 
   if option == 'Sell' then
-    maximum = math.min(maximum, Market.getDepotCount(item.marketData.tradeAs))
+    maximum = math.min(maximum, Market.getDepotCount(item.marketData.showAs))
     amountEdit:setMaximum(maximum)
   else
     amountEdit:setMaximum(maximum)
@@ -1229,7 +1210,7 @@ function Market.refreshItemsWidget(selectItem)
     local itemWidget = itemBox:getChildById('item')
     itemWidget:setItem(item.displayItem)
 
-    local amount = Market.getDepotCount(item.marketData.tradeAs)
+    local amount = Market.getDepotCount(item.marketData.showAs)
     if amount > 0 then
       itemWidget:setText(comma_value(amount))
       itemBox:setTooltip('You have '.. amount ..' in your depot.')
@@ -1322,7 +1303,7 @@ function Market.createNewOffer()
     return
   end
 
-  local spriteId = selectedItem.item.marketData.tradeAs
+  local spriteId = selectedItem.item.marketData.showAs
 
   local piecePrice = piecePriceEdit:getValue()
   local amount = amountEdit:getValue()
