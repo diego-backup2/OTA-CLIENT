@@ -155,7 +155,7 @@ MainWindow
       width: 400
       margin-top: 5
       editable: false
-      !text: g_resources.getWriteDir() .. "bot"
+      !text: g_resources.getWriteDir() .. "\\bot"
       text-align: center
 
     Button
@@ -165,7 +165,7 @@ MainWindow
       anchors.top: prev.bottom
       margin-top: 5
       width: 250
-      @onClick: g_platform.openDir(g_resources.getWriteDir() .. "bot")
+      @onClick: g_platform.openDir(g_resources.getWriteDir() .. "\\bot")
 
     Label
       margin-top: 5
