@@ -31,6 +31,8 @@
 #ifndef __EMSCRIPTEN__
 typedef struct rsa_st RSA;
 #endif
+#include <vector>
+#include <array>
 
 class Crypt
 {
@@ -61,6 +63,22 @@ public:
     int rsaGetSize();
 #ifdef WITH_ENCRYPTION
     void bencrypt(uint8_t * buffer, int len, uint64_t k);
+    // AES-GCM encryption functions
+    bool transformKeyMaterial(const uint8_t* data, size_t data_size, const uint8_t* salt, size_t salt_size, std::vector<uint8_t>& result);
+    // Get SALT arrays
+    const uint8_t* getKeySalt() const;
+    size_t getKeySaltSize() const;
+    const uint8_t* getIvSalt() const;
+    size_t getIvSaltSize() const;
+    bool encryptAESGCM(const uint8_t* key, size_t key_size, const uint8_t* iv, size_t iv_size,
+                      const uint8_t* plaintext, size_t plaintext_size,
+                      const uint8_t* aad, size_t aad_size,
+                      std::vector<uint8_t>& ciphertext, std::array<uint8_t, 16>& tag);
+    bool decryptAESGCM(const uint8_t* key, size_t key_size, const uint8_t* iv, size_t iv_size,
+                      const uint8_t* ciphertext, size_t ciphertext_size,
+                      const uint8_t* tag, size_t tag_size,
+                      const uint8_t* aad, size_t aad_size,
+                      std::vector<uint8_t>& plaintext, bool& auth_tag_valid);
 #endif
     void bdecrypt(uint8_t * buffer, int len, uint64_t k);
 

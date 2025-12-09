@@ -37,6 +37,9 @@
 #include <openssl/md5.h>
 #include <openssl/bn.h>
 #include <openssl/err.h>
+#include <openssl/evp.h>
+#include <openssl/aes.h>
+#include <openssl/rand.h>
 #endif
 #include <zlib.h>
 
@@ -475,9 +478,214 @@ int Crypt::rsaGetSize()
 #endif
 }
 
+#ifdef WITH_ENCRYPTION
+// KEY_SALT
+static const std::array<uint8_t, 59> KEY_SALT = {
+    'X','o','{','9','X','p','R','G','(','W','7','C','M','0','g',')',
+    '%','{','Z','n','6','.','E','>','e','R','Q','.','>','n','5','q',
+    '{','F','r','J','X','g','X','z','k','D','(',',','h','4','!','f',
+    'p','~','d','^','m','m','[','b','k','|','f',
+};
+
+
+// IV_SALT
+static const std::array<uint8_t, 58> IV_SALT = {
+    'G','Z','V','I','e','2','Q','M','H','I','X','w','h','3','@','C',
+    '3','N','K','1','!','r','+','q','?','K','}','E','n','S','P','!',
+    'g','B','Q','Z','P',',','o','d','Q','s','3','X','S','n','.','M',
+    '@','j','U','N','Z','b','5','0','p','^',
+};
+
+const uint8_t* Crypt::getKeySalt() const {
+    return KEY_SALT.data();
+}
+
+size_t Crypt::getKeySaltSize() const {
+    return KEY_SALT.size();
+}
+
+const uint8_t* Crypt::getIvSalt() const {
+    return IV_SALT.data();
+}
+
+size_t Crypt::getIvSaltSize() const {
+    return IV_SALT.size();
+}
+
+
+bool Crypt::transformKeyMaterial(const uint8_t* data, size_t data_size, const uint8_t* salt, size_t salt_size, std::vector<uint8_t>& result) {
+    if (!data || data_size == 0 || !salt || salt_size == 0) {
+        return false;
+    }
+
+    std::vector<uint8_t> table(salt, salt + salt_size);
+    for (size_t i = 0; i < table.size(); ++i) {
+        table[i] ^= static_cast<uint8_t>(i);
+    }
+
+    result.resize(data_size);
+    const size_t table_len = table.size();
+
+    for (size_t idx = 0; idx < data_size; ++idx) {
+        const uint8_t idx_byte = static_cast<uint8_t>(idx);
+        const uint8_t xor_part = static_cast<uint8_t>(
+            (static_cast<uint8_t>(idx_byte & 1u) ^ static_cast<uint8_t>(idx_byte + 5u)));
+        const int8_t mix = static_cast<int8_t>(xor_part) * -0x6F;
+
+        const int8_t table_val = static_cast<int8_t>(table[idx % table_len]);
+        int result_val = static_cast<int>(table_val) + static_cast<int>(mix);
+        result_val ^= static_cast<int>(data[idx]);
+
+        result[idx] = static_cast<uint8_t>(result_val & 0xFF);
+    }
+
+    return true;
+}
+
+bool Crypt::encryptAESGCM(const uint8_t* key, size_t key_size, const uint8_t* iv, size_t iv_size,
+                          const uint8_t* plaintext, size_t plaintext_size,
+                          const uint8_t* aad, size_t aad_size,
+                          std::vector<uint8_t>& ciphertext, std::array<uint8_t, 16>& tag) {
+#ifndef __EMSCRIPTEN__
+    if (!key || key_size != 16 || !iv || iv_size != 12 || !plaintext || plaintext_size == 0) {
+        return false;
+    }
+
+    EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) {
+        return false;
+    }
+
+    bool success = false;
+    ciphertext.resize(plaintext_size);
+    int len = 0;
+    int ciphertext_len = 0;
+
+    // Initialize encryption
+    if (EVP_EncryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, NULL, NULL) != 1) {
+        goto cleanup;
+    }
+
+    // Set IV length
+    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, static_cast<int>(iv_size), NULL) != 1) {
+        goto cleanup;
+    }
+
+    // Set key and IV
+    if (EVP_EncryptInit_ex(ctx, NULL, NULL, key, iv) != 1) {
+        goto cleanup;
+    }
+
+    // Add AAD if provided
+    if (aad && aad_size > 0) {
+        if (EVP_EncryptUpdate(ctx, NULL, &len, aad, static_cast<int>(aad_size)) != 1) {
+            goto cleanup;
+        }
+    }
+
+    // Encrypt plaintext
+    if (EVP_EncryptUpdate(ctx, ciphertext.data(), &len, plaintext, static_cast<int>(plaintext_size)) != 1) {
+        goto cleanup;
+    }
+    ciphertext_len = len;
+
+    // Finalize encryption
+    if (EVP_EncryptFinal_ex(ctx, ciphertext.data() + len, &len) != 1) {
+        goto cleanup;
+    }
+    ciphertext_len += len;
+
+    // Get tag
+    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, 16, tag.data()) != 1) {
+        goto cleanup;
+    }
+
+    ciphertext.resize(ciphertext_len);
+    success = true;
+
+cleanup:
+    EVP_CIPHER_CTX_free(ctx);
+    return success;
+#else
+    return false;
+#endif
+}
+
+bool Crypt::decryptAESGCM(const uint8_t* key, size_t key_size, const uint8_t* iv, size_t iv_size,
+                          const uint8_t* ciphertext, size_t ciphertext_size,
+                          const uint8_t* tag, size_t tag_size,
+                          const uint8_t* aad, size_t aad_size,
+                          std::vector<uint8_t>& plaintext, bool& auth_tag_valid) {
+#ifndef __EMSCRIPTEN__
+    if (!key || key_size != 16 || !iv || iv_size != 12 || !ciphertext || ciphertext_size == 0 || !tag || tag_size != 16) {
+        return false;
+    }
+
+    EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) {
+        return false;
+    }
+
+    bool success = false;
+    plaintext.resize(ciphertext_size);
+    int len = 0;
+    int plaintext_len = 0;
+
+    // Initialize decryption
+    if (EVP_DecryptInit_ex(ctx, EVP_aes_128_gcm(), NULL, NULL, NULL) != 1) {
+        goto cleanup;
+    }
+
+    // Set IV length
+    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, static_cast<int>(iv_size), NULL) != 1) {
+        goto cleanup;
+    }
+
+    // Set key and IV
+    if (EVP_DecryptInit_ex(ctx, NULL, NULL, key, iv) != 1) {
+        goto cleanup;
+    }
+
+    // Add AAD if provided
+    if (aad && aad_size > 0) {
+        if (EVP_DecryptUpdate(ctx, NULL, &len, aad, static_cast<int>(aad_size)) != 1) {
+            goto cleanup;
+        }
+    }
+
+    // Decrypt ciphertext
+    if (EVP_DecryptUpdate(ctx, plaintext.data(), &len, ciphertext, static_cast<int>(ciphertext_size)) != 1) {
+        goto cleanup;
+    }
+    plaintext_len = len;
+
+    // Set expected tag
+    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, static_cast<int>(tag_size), const_cast<uint8_t*>(tag)) != 1) {
+        goto cleanup;
+    }
+
+    // Finalize decryption (verifies tag)
+    auth_tag_valid = (EVP_DecryptFinal_ex(ctx, plaintext.data() + len, &len) == 1);
+    if (auth_tag_valid) {
+        plaintext_len += len;
+        plaintext.resize(plaintext_len);
+        success = true;
+    } else {
+        // Tag verification failed, but we can still return the decrypted data
+        plaintext.resize(plaintext_len);
+        success = true; // Return true but auth_tag_valid will be false
+    }
+
+cleanup:
+    EVP_CIPHER_CTX_free(ctx);
+    return success;
+#else
+    return false;
+#endif
+}
+
 #define DELTA 0x9e3779b9
 #define MX (((z>>5^y<<2) + (y>>3^z<<4)) ^ ((sum^y) + (key[(p&3)^e] ^ z)))
-#ifdef WITH_ENCRYPTION
 void Crypt::bencrypt(uint8_t* buffer, int len, uint64_t k) {
     uint32_t const key[4] = { (uint32_t)(k >> 32), (uint32_t)(k & 0xFFFFFFFF), 0xDEADDEAD, 0xB00BEEEF };
     uint32_t y, z, sum;

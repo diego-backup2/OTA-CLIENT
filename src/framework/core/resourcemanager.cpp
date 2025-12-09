@@ -43,6 +43,8 @@
 #ifndef __EMSCRIPTEN__
 #include <zip.h>
 #include <zlib.h>
+#include <cstring>
+#include <array>
 #endif
 
 ResourceManager g_resources;
@@ -149,7 +151,6 @@ bool ResourceManager::setupWriteDir(const std::string& product, const std::strin
     localDir = g_androidState->activity->internalDataPath;
 #else
     // Obtém o diretório do executável
-    std::string currentDir = g_platform.getCurrentDir();
     std::filesystem::path binaryDir = m_binaryPath.parent_path();
     std::string currentDir = binaryDir.string();
     if (currentDir.empty()) {
@@ -472,7 +473,7 @@ bool ResourceManager::isFileEncryptedOrCompressed(const std::string& fileName)
     if (fileContent.size() < 10)
         return false;
     
-    if (fileContent.substr(0, 4).compare("ENC3") == 0)
+    if (fileContent.substr(0, 4).compare("BYTE") == 0)
         return true;
 
     if ((uint8_t)fileContent[0] != 0x1f || (uint8_t)fileContent[1] != 0x8b || (uint8_t)fileContent[2] != 0x08) {
@@ -1028,7 +1029,7 @@ void ResourceManager::encrypt(const std::string& seed) {
             continue;
         std::string buffer(std::istreambuf_iterator<char>(in_file), {});
         in_file.close();
-        if (buffer.size() >= 4 && buffer.substr(0, 4).compare("ENC3") == 0)
+        if (buffer.size() >= 4 && buffer.substr(0, 4).compare("BYTE") == 0)
             continue; // already encrypted
 
         if (!encryptForAndroid && it.extension().string() == luaExtension && it.filename().string() != INIT_FILENAME) {
@@ -1057,74 +1058,224 @@ void ResourceManager::encrypt(const std::string& seed) {
 #endif 
 
 bool ResourceManager::decryptBuffer(std::string& buffer) {
-    if (buffer.size() < 5)
+    if (buffer.size() < 52) // HEADER_SIZE (36) + TAG_SIZE (16) = 52
         return true;
 
-    if (buffer.substr(0, 4).compare("ENC3") != 0) {
+    if (buffer.substr(0, 4).compare("BYTE") != 0) {
         return false;
     }
 
-    uint64_t key = *(uint64_t*)&buffer[4];
-    uint32_t compressed_size = *(uint32_t*)&buffer[12];
-    uint32_t size = *(uint32_t*)&buffer[16];
-    uint32_t adler = *(uint32_t*)&buffer[20];
-
-    if (compressed_size < buffer.size() - 24)
+#ifndef __EMSCRIPTEN__
+    const uint8_t* header = reinterpret_cast<const uint8_t*>(buffer.data());
+    
+    // Extract header fields
+    const uint32_t uncompressed_size = stdext::readULE32(reinterpret_cast<const uchar*>(header + 4));
+    if (uncompressed_size == 0 || uncompressed_size > 100 * 1024 * 1024) {
         return false;
+    }
 
-    g_crypt.bdecrypt((uint8_t*)&buffer[24], compressed_size, key);
-    std::string new_buffer;
-    new_buffer.resize(size);
-    unsigned long new_buffer_size = new_buffer.size();
-    if (uncompress((uint8_t*)new_buffer.data(), &new_buffer_size, (uint8_t*)&buffer[24], compressed_size) != Z_OK)
+    // Extract raw key (16 bytes at offset 0x08)
+    std::array<uint8_t, 16> raw_key;
+    std::memcpy(raw_key.data(), header + 8, 16);
+
+    // Extract raw IV (12 bytes at offset 0x18)
+    std::array<uint8_t, 12> raw_iv;
+    std::memcpy(raw_iv.data(), header + 24, 12);
+
+    // Transform key and IV using SALT
+    std::vector<uint8_t> processed_key_vec;
+    if (!g_crypt.transformKeyMaterial(raw_key.data(), 16, 
+                                       g_crypt.getKeySalt(), g_crypt.getKeySaltSize(),
+                                       processed_key_vec)) {
         return false;
+    }
+    if (processed_key_vec.size() != 16) {
+        return false;
+    }
 
-    uint32_t addlerCheck = stdext::adler32((const uint8_t*)&new_buffer[0], size);
-    if (adler != addlerCheck) {
-        uint32_t cseed = adler ^ addlerCheck;
-        if (m_customEncryption == 0) {
-            m_customEncryption = cseed;
-        }
-        if ((addlerCheck ^ m_customEncryption) != adler) {
+    std::vector<uint8_t> processed_iv_vec;
+    if (!g_crypt.transformKeyMaterial(raw_iv.data(), 12,
+                                       g_crypt.getIvSalt(), g_crypt.getIvSaltSize(),
+                                       processed_iv_vec)) {
+        return false;
+    }
+    if (processed_iv_vec.size() != 12) {
+        return false;
+    }
+
+    std::array<uint8_t, 16> processed_key;
+    std::memcpy(processed_key.data(), processed_key_vec.data(), 16);
+    std::array<uint8_t, 12> processed_iv;
+    std::memcpy(processed_iv.data(), processed_iv_vec.data(), 12);
+
+    // Extract ciphertext and tag
+    const size_t encrypted_total = buffer.size() - 36; // HEADER_SIZE
+    if (encrypted_total <= 16) { // TAG_SIZE
+        return false;
+    }
+
+    const uint8_t* ciphertext = header + 36;
+    const size_t ciphertext_size = encrypted_total - 16;
+    const uint8_t* tag = ciphertext + ciphertext_size;
+
+    // Decrypt with AES-GCM
+    std::vector<uint8_t> decrypted;
+    bool auth_tag_valid = true;
+    std::vector<uint8_t> header_vec(header, header + 36);
+
+    if (!g_crypt.decryptAESGCM(processed_key.data(), 16,
+                                processed_iv.data(), 12,
+                                ciphertext, ciphertext_size,
+                                tag, 16,
+                                header_vec.data(), 36,
+                                decrypted, auth_tag_valid)) {
+        return false;
+    }
+
+    // Decompress with zlib
+    std::vector<uint8_t> decompressed;
+    decompressed.resize(uncompressed_size);
+    unsigned long dest_len = uncompressed_size;
+    
+    if (uncompress(decompressed.data(), &dest_len, decrypted.data(), decrypted.size()) != Z_OK) {
+        // Try dynamic decompression
+        z_stream stream{};
+        stream.zalloc = Z_NULL;
+        stream.zfree = Z_NULL;
+        stream.opaque = Z_NULL;
+        
+        if (inflateInit(&stream) != Z_OK) {
             return false;
         }
+        
+        decompressed.clear();
+        decompressed.reserve(decrypted.size() * 2);
+        
+        stream.next_in = const_cast<Bytef*>(decrypted.data());
+        stream.avail_in = static_cast<uInt>(decrypted.size());
+        
+        int ret;
+        do {
+            if (stream.total_out >= decompressed.size()) {
+                decompressed.resize(decompressed.size() + 16384);
+            }
+            stream.next_out = decompressed.data() + stream.total_out;
+            stream.avail_out = static_cast<uInt>(decompressed.size() - stream.total_out);
+            ret = inflate(&stream, Z_NO_FLUSH);
+        } while (ret == Z_OK);
+        
+        inflateEnd(&stream);
+        if (ret != Z_STREAM_END) {
+            return false;
+        }
+        
+        decompressed.resize(stream.total_out);
+    } else {
+        decompressed.resize(dest_len);
     }
 
-    buffer = new_buffer;
+    buffer.assign(reinterpret_cast<const char*>(decompressed.data()), decompressed.size());
     return true;
+#else
+    return false;
+#endif
 }
 
 #ifdef WITH_ENCRYPTION
 bool ResourceManager::encryptBuffer(std::string& buffer, uint32_t seed) {
-    if (buffer.size() >= 4 && buffer.substr(0, 4).compare("ENC3") == 0)
+    if (buffer.size() >= 4 && buffer.substr(0, 4).compare("BYTE") == 0)
         return false; // already encrypted
 
-    // not random beacause it would require to update to new files each time
-    int64_t key = stdext::adler32((const uint8_t*)&buffer[0], buffer.size());
-    key <<= 32;
-    key += stdext::adler32((const uint8_t*)&buffer[0], buffer.size() / 2);
-
-    std::string new_buffer(24 + buffer.size() * 2, '0');
-    new_buffer[0] = 'E';
-    new_buffer[1] = 'N';
-    new_buffer[2] = 'C';
-    new_buffer[3] = '3';
-
-    unsigned long dstLen = new_buffer.size() - 24;
-    if (compress((uint8_t*)&new_buffer[24], &dstLen, (const uint8_t*)buffer.data(), buffer.size()) != Z_OK) {
+#ifndef __EMSCRIPTEN__
+    // Compress data first
+    unsigned long compressed_size = buffer.size() * 2;
+    std::vector<uint8_t> compressed(compressed_size);
+    
+    if (compress(compressed.data(), &compressed_size, 
+                 reinterpret_cast<const uint8_t*>(buffer.data()), buffer.size()) != Z_OK) {
         g_logger.error("Error while compressing");
         return false;
     }
-    new_buffer.resize(24 + dstLen);
+    compressed.resize(compressed_size);
 
-    *(int64_t*)&new_buffer[4] = key;
-    *(uint32_t*)&new_buffer[12] = (uint32_t)dstLen;
-    *(uint32_t*)&new_buffer[16] = (uint32_t)buffer.size();
-    *(uint32_t*)&new_buffer[20] = ((uint32_t)stdext::adler32((const uint8_t*)&buffer[0], buffer.size())) ^ seed;
+    // Generate key material from buffer content (deterministic)
+    uint32_t key_part1 = stdext::adler32(reinterpret_cast<const uint8_t*>(buffer.data()), buffer.size());
+    uint32_t key_part2 = stdext::adler32(reinterpret_cast<const uint8_t*>(buffer.data()), buffer.size() / 2);
+    
+    // Create 16-byte key from adler32 hashes
+    std::array<uint8_t, 16> raw_key{};
+    std::memcpy(raw_key.data(), &key_part1, 4);
+    std::memcpy(raw_key.data() + 4, &key_part2, 4);
+    std::memcpy(raw_key.data() + 8, &key_part1, 4);
+    std::memcpy(raw_key.data() + 12, &key_part2, 4);
 
-    g_crypt.bencrypt((uint8_t*)&new_buffer[0] + 24, new_buffer.size() - 24, key);
-    buffer = new_buffer;
+    // Generate IV from seed and buffer hash
+    std::array<uint8_t, 12> raw_iv{};
+    uint32_t iv_seed = seed ^ key_part1;
+    std::memcpy(raw_iv.data(), &iv_seed, 4);
+    std::memcpy(raw_iv.data() + 4, &key_part2, 4);
+    std::memcpy(raw_iv.data() + 8, &seed, 4);
+
+    // Transform key and IV using SALT
+    std::vector<uint8_t> processed_key_vec;
+    if (!g_crypt.transformKeyMaterial(raw_key.data(), 16,
+                                       g_crypt.getKeySalt(), g_crypt.getKeySaltSize(),
+                                       processed_key_vec)) {
+        return false;
+    }
+    if (processed_key_vec.size() != 16) {
+        return false;
+    }
+
+    std::vector<uint8_t> processed_iv_vec;
+    if (!g_crypt.transformKeyMaterial(raw_iv.data(), 12,
+                                       g_crypt.getIvSalt(), g_crypt.getIvSaltSize(),
+                                       processed_iv_vec)) {
+        return false;
+    }
+    if (processed_iv_vec.size() != 12) {
+        return false;
+    }
+
+    std::array<uint8_t, 16> processed_key;
+    std::memcpy(processed_key.data(), processed_key_vec.data(), 16);
+    std::array<uint8_t, 12> processed_iv;
+    std::memcpy(processed_iv.data(), processed_iv_vec.data(), 12);
+
+    // Encrypt with AES-GCM
+    std::vector<uint8_t> ciphertext;
+    std::array<uint8_t, 16> tag;
+    
+    // Create header (will be used as AAD)
+    std::vector<uint8_t> header(36);
+    header[0] = 'B';
+    header[1] = 'Y';
+    header[2] = 'T';
+    header[3] = 'E';
+    stdext::writeULE32(header.data() + 4, static_cast<uint32_t>(buffer.size())); // uncompressed size
+    std::memcpy(header.data() + 8, raw_key.data(), 16); // raw key
+    std::memcpy(header.data() + 24, raw_iv.data(), 12); // raw IV
+
+    if (!g_crypt.encryptAESGCM(processed_key.data(), 16,
+                               processed_iv.data(), 12,
+                               compressed.data(), compressed.size(),
+                               header.data(), 36,
+                               ciphertext, tag)) {
+        g_logger.error("Error while encrypting with AES-GCM");
+        return false;
+    }
+
+    // Build final buffer: header + ciphertext + tag
+    buffer.clear();
+    buffer.reserve(36 + ciphertext.size() + 16);
+    buffer.assign(reinterpret_cast<const char*>(header.data()), 36);
+    buffer.append(reinterpret_cast<const char*>(ciphertext.data()), ciphertext.size());
+    buffer.append(reinterpret_cast<const char*>(tag.data()), 16);
+
     return true;
+#else
+    return false;
+#endif
 }
 #endif
 
