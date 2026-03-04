@@ -1,0 +1,64 @@
+name: Build Release on request
+on: 
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  Windows:
+    name: Build windows version
+    runs-on: windows-2022
+    timeout-minutes: 180
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+          submodules: recursive
+
+    - name: Setup MSBuild and add to PATH
+      uses: microsoft/setup-msbuild@v1.1
+      id: setup_msbuild
+
+    - name: Run vcpkg
+      uses: lukka/run-vcpkg@v10
+      env:
+        VCPKG_DEFAULT_TRIPLET: x86-windows-static
+        VCPKG_INSTALLED_DIR: ${{ runner.workspace }}/vcpkg/installed/
+      with:
+        doNotCache: false
+        vcpkgDirectory: ${{ runner.workspace }}/vcpkg/
+        vcpkgGitCommitId: 903956eff7cb94774a9e805ff573c000afc43e3e
+        
+    - name: Integrate vcpkg
+      run: |
+        ${{ runner.workspace }}/vcpkg/vcpkg integrate install
+
+    - name: Cache vcpkg_installed
+      uses: actions/cache@v4
+      with:
+        path: ${{ github.workspace }}/vcpkg_installed
+        key: vcpkg-${{ hashFiles('vcpkg.json') }}
+        restore-keys: |
+          vcpkg-
+        
+    - name: Compile otclient_dx
+      run: |
+        cd vc17
+        MSBuild /property:Configuration=DirectX /p:Platform=Win32 /p:BUILD_REVISION=${{github.run_number}}
+        
+    - name: Compile otclient_gl
+      timeout-minutes: 20
+      run: |
+        cd vc17
+        MSBuild /property:Configuration=OpenGL /p:Platform=Win32 /p:BUILD_REVISION=${{github.run_number}} 
+
+    - name: Upload binaries
+      uses: 'actions/upload-artifact@v4'
+      with:
+        name: OTCV8-builds
+        path: |
+          otclient_gl.exe
+          otclient_dx.exe
+        if-no-files-found: error
