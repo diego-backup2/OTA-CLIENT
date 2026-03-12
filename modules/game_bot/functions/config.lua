@@ -150,6 +150,11 @@ end
 -- not done yet
 Config.setup = function(dir, widget, configExtension, callback)  
   local basePath = context.configDir
+  local characterName = g_game.getCharacterName() or ""
+  local legacyKey = nil
+  if characterName:len() > 0 then
+    legacyKey = characterName .. "/" .. dir
+  end
 
   if type(dir) ~= 'string' or dir:len() == 0 then
     return context.error("Invalid config dir")
@@ -161,12 +166,19 @@ Config.setup = function(dir, widget, configExtension, callback)
     context.storage._configs = {}
   end
   if type(context.storage._configs[dir]) ~= "table" then
-    context.storage._configs[dir] = {
-      enabled = false,
-      selected = ""
-    }
+    if legacyKey and type(context.storage._configs[legacyKey]) == "table" then
+      context.storage._configs[dir] = context.storage._configs[legacyKey]
+    else
+      context.storage._configs[dir] = {
+        enabled = false,
+        selected = ""
+      }
+    end
   else
     widget.switch:setOn(context.storage._configs[dir].enabled)
+  end
+  if legacyKey then
+    context.storage._configs[legacyKey] = context.storage._configs[dir]
   end
   
   local isRefreshing = false

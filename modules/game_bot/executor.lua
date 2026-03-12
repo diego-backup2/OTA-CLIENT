@@ -36,6 +36,7 @@ function executeBot(config, storage, tabs, msgCallback, saveConfigCallback, relo
   -- init bot variables
   local context = {}
   context.configDir = configPath
+  context.configName = config
   context.tabs = tabs
   context.mainTab = context.tabs:addTab("Main", g_ui.createWidget('BotPanel')).tabPanel.content
   context.panel = context.mainTab
@@ -45,6 +46,114 @@ function executeBot(config, storage, tabs, msgCallback, saveConfigCallback, relo
   context.storage = storage
   if context.storage._macros == nil then
     context.storage._macros = {} -- active macros
+  end
+  if type(context.storage._configs) ~= "table" then
+    context.storage._configs = {}
+  end
+
+  local function ensureCompatConfigEntry(key)
+    if type(context.storage._configs[key]) ~= "table" then
+      context.storage._configs[key] = {
+        enabled = false,
+        selected = ""
+      }
+    end
+  end
+
+  ensureCompatConfigEntry("cavebot_configs")
+  ensureCompatConfigEntry("targetbot_configs")
+
+  local characterName = g_game.getCharacterName() or ""
+  if characterName:len() > 0 then
+    context.storage._configs[characterName .. "/cavebot_configs"] = context.storage._configs.cavebot_configs
+    context.storage._configs[characterName .. "/targetbot_configs"] = context.storage._configs.targetbot_configs
+  end
+
+  local function resolveBotPath(path)
+    if type(path) ~= "string" then
+      return path
+    end
+
+    local normalized = path:gsub("\\", "/")
+    if normalized == "/bot" or normalized == "/bot/" then
+      return context.configDir
+    end
+
+    if normalized:sub(1, 5) ~= "/bot/" then
+      return normalized
+    end
+
+    local rest = normalized:sub(6)
+    if rest:sub(1, 9) == "profiles/" then
+      local profileRest = rest:sub(10)
+      local slashPos = profileRest:find("/", 1, true)
+      if slashPos then
+        return context.configDir .. "/" .. profileRest:sub(slashPos + 1)
+      end
+      return context.configDir
+    end
+
+    local configPrefix = context.configName .. "/"
+    if rest:sub(1, #configPrefix) == configPrefix then
+      rest = rest:sub(#configPrefix + 1)
+    end
+
+    return context.configDir .. "/" .. rest
+  end
+
+  local function resolveCfgCompatPath(path)
+    local resolved = resolveBotPath(path)
+    if type(resolved) == "string" and resolved:sub(-4) == ".cfg" and not g_resources.fileExists(resolved) then
+      local jsonPath = resolved:sub(1, -5) .. ".json"
+      if g_resources.fileExists(jsonPath) then
+        return jsonPath
+      end
+    end
+    return resolved
+  end
+
+  local resourcesProxy = setmetatable({}, { __index = g_resources })
+  resourcesProxy.directoryExists = function(path)
+    return g_resources.directoryExists(resolveBotPath(path))
+  end
+  resourcesProxy.makeDir = function(path)
+    return g_resources.makeDir(resolveBotPath(path))
+  end
+  resourcesProxy.listDirectoryFiles = function(path, ...)
+    return g_resources.listDirectoryFiles(resolveBotPath(path), ...)
+  end
+  resourcesProxy.fileExists = function(path)
+    local resolved = resolveBotPath(path)
+    if g_resources.fileExists(resolved) then
+      return true
+    end
+    if type(resolved) == "string" and resolved:sub(-4) == ".cfg" then
+      return g_resources.fileExists(resolved:sub(1, -5) .. ".json")
+    end
+    return false
+  end
+  resourcesProxy.readFileContents = function(path)
+    return g_resources.readFileContents(resolveCfgCompatPath(path))
+  end
+  resourcesProxy.writeFileContents = function(path, data)
+    local resolved = resolveBotPath(path)
+    if type(resolved) == "string" and resolved:sub(-4) == ".cfg" then
+      resolved = resolved:sub(1, -5) .. ".json"
+    end
+    return g_resources.writeFileContents(resolved, data)
+  end
+  resourcesProxy.deleteFile = function(path)
+    local resolved = resolveBotPath(path)
+    if g_resources.fileExists(resolved) then
+      return g_resources.deleteFile(resolved)
+    end
+    if type(resolved) == "string" and resolved:sub(-4) == ".cfg" then
+      local jsonPath = resolved:sub(1, -5) .. ".json"
+      if g_resources.fileExists(jsonPath) then
+        return g_resources.deleteFile(jsonPath)
+      end
+    end
+    return g_resources.deleteFile(resolved)
   end
 
   -- websockets, macros, hotkeys, scheduler, icons, callbacks
@@ -122,7 +231,7 @@ function executeBot(config, storage, tabs, msgCallback, saveConfigCallback, relo
     else
       path = context.configDir .. "/" .. file
     end
-    assert(load(g_resources.readFileContents(path), file, nil, context))()
+    assert(load(resourcesProxy.readFileContents(path), file, nil, context))()
   end
   context.gcinfo = gcinfo
   context.tr = tr
@@ -136,7 +245,7 @@ function executeBot(config, storage, tabs, msgCallback, saveConfigCallback, relo
   context.getVersion = g_app.getVersion
   
   -- classes
-  context.g_resources = g_resources
+  context.g_resources = resourcesProxy
   context.g_game = g_game
   context.g_map = g_map
   context.g_ui = g_ui
