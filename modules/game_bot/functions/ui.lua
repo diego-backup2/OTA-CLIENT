@@ -25,6 +25,7 @@ end
 
 UI.createWindow = function(name)
   local widget = g_ui.createWidget(name, g_ui.getRootWidget())
+  if not widget then return end
   widget.botWidget = true  
   widget:show()
   widget:raise()
