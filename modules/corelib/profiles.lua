@@ -103,3 +103,11 @@ end
 function Profiles.getFilePath(filename)
     return "/profiles/" .. Profiles.getFolderName() .. "/" .. filename
 end
+
+function Profiles.getBotDir()
+    return Profiles.getFilePath("bot")
+end
+
+function Profiles.getBotConfigPath(configName)
+    return Profiles.getBotDir() .. "/" .. configName
+end

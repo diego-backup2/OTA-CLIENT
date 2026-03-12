@@ -149,16 +149,12 @@ end
 -- setup is used for BotConfig widget
 -- not done yet
 Config.setup = function(dir, widget, configExtension, callback)  
-  local characterName = g_game.getCharacterName()
-  local profileBasePath = context.configDir .. "/profiles/" .. characterName
-  
-  if not g_resources.directoryExists(profileBasePath) then
-    g_resources.makeDir(profileBasePath)
-  end  
+  local basePath = context.configDir
+
   if type(dir) ~= 'string' or dir:len() == 0 then
     return context.error("Invalid config dir")
   end
-  if not Config.exist(dir, profileBasePath) and not Config.create(dir, profileBasePath) then
+  if not Config.exist(dir, basePath) and not Config.create(dir, basePath) then
     return context.error("Can't create config dir: " .. dir)
   end
   if type(context.storage._configs) ~= "table" then
@@ -176,7 +172,7 @@ Config.setup = function(dir, widget, configExtension, callback)
   local isRefreshing = false
   local refresh = function()
     isRefreshing = true
-    local configs = Config.list(dir, profileBasePath)
+    local configs = Config.list(dir, basePath)
     local configIndex = 1
     widget.list:clear()
     for v,k in ipairs(configs) do 
@@ -189,7 +185,7 @@ Config.setup = function(dir, widget, configExtension, callback)
     if #configs > 0 then
       widget.list:setCurrentIndex(configIndex)
       context.storage._configs[dir].selected = widget.list:getCurrentOption().text
-      data = Config.load(dir, configs[configIndex], profileBasePath)
+      data = Config.load(dir, configs[configIndex], basePath)
     else
       context.storage._configs[dir].selected = nil
     end
@@ -216,7 +212,7 @@ Config.setup = function(dir, widget, configExtension, callback)
       if name:len() == 0 or name:len() >= 30 or name:find("/") or name:find("\\") then
         return context.error("Invalid config name")
       end
-      local file = profileBasePath .. "/" .. dir .. "/" .. name .. "." .. configExtension
+      local file = basePath .. "/" .. dir .. "/" .. name .. "." .. configExtension
       if g_resources.fileExists(file) then
         return context.error("Config " .. name .. " already exist")
       end
@@ -234,9 +230,9 @@ Config.setup = function(dir, widget, configExtension, callback)
   widget.edit.onClick = function()
     local name = context.storage._configs[dir].selected
     if not name then return end
-    context.UI.MultilineEditorWindow(Config.loadRaw(dir, name, profileBasePath), {title="Config editor - " .. name .. " in " .. dir}, function(newValue)
+    context.UI.MultilineEditorWindow(Config.loadRaw(dir, name, basePath), {title="Config editor - " .. name .. " in " .. dir}, function(newValue)
         local data = Config.parse(newValue)
-        Config.save(dir, name, data, configExtension, profileBasePath)
+        Config.save(dir, name, data, configExtension, basePath)
         refresh()
       end)
   end
@@ -245,7 +241,7 @@ Config.setup = function(dir, widget, configExtension, callback)
     local name = context.storage._configs[dir].selected
     if not name then return end
     context.UI.ConfirmationWindow("Config removal", "Do you want to remove config " .. name .. " from " .. dir .. "?", function()
-      Config.remove(dir, name, profileBasePath)
+      Config.remove(dir, name, basePath)
       widget.switch:setOn(false)
       refresh()
     end)
@@ -283,7 +279,7 @@ Config.setup = function(dir, widget, configExtension, callback)
       end
     end,
     save = function(data)
-      Config.save(dir, context.storage._configs[dir].selected, data, configExtension, profileBasePath)
+      Config.save(dir, context.storage._configs[dir].selected, data, configExtension, basePath)
     end,
     refresh = refresh,
     reload = refresh,

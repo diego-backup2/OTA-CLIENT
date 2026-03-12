@@ -1,6 +1,22 @@
+local function getCurrentProfileFolderName()
+  local name = g_game.getCharacterName() or ""
+  name = name:gsub("[<>:\"/\\|?*]", "")
+  name = name:gsub("%s+", "_")
+  return name
+end
+
+local function getBotConfigPath(configName)
+  if Profiles and type(Profiles.getBotConfigPath) == "function" then
+    return Profiles.getBotConfigPath(configName)
+  end
+  return "/profiles/" .. getCurrentProfileFolderName() .. "/bot/" .. configName
+end
+
 function executeBot(config, storage, tabs, msgCallback, saveConfigCallback, reloadCallback, websockets)
+  local configPath = getBotConfigPath(config)
+
   -- load lua and otui files
-  local configFiles = g_resources.listDirectoryFiles("/bot/" .. config, true, false)  
+  local configFiles = g_resources.listDirectoryFiles(configPath, true, false)  
   local luaFiles = {}
   local uiFiles = {}
   for i, file in ipairs(configFiles) do
@@ -14,12 +30,12 @@ function executeBot(config, storage, tabs, msgCallback, saveConfigCallback, relo
   end
   
   if #luaFiles == 0 then
-    return error("Config (/bot/" .. config .. ") doesn't have lua files")
+    return error("Config (" .. configPath .. ") doesn't have lua files")
   end
   
   -- init bot variables
   local context = {}
-  context.configDir = "/bot/".. config
+  context.configDir = configPath
   context.tabs = tabs
   context.mainTab = context.tabs:addTab("Main", g_ui.createWidget('BotPanel')).tabPanel.content
   context.panel = context.mainTab
@@ -99,7 +115,15 @@ function executeBot(config, storage, tabs, msgCallback, saveConfigCallback, relo
   context.load = function(str) return assert(load(str, nil, nil, context)) end
   context.loadstring = context.load
   context.assert = assert
-  context.dofile = function(file) assert(load(g_resources.readFileContents("/bot/" .. config .. "/" .. file), file, nil, context))() end
+  context.dofile = function(file)
+    local path = file
+    if file:sub(1, 1) == "/" then
+      path = context.configDir .. file
+    else
+      path = context.configDir .. "/" .. file
+    end
+    assert(load(g_resources.readFileContents(path), file, nil, context))()
+  end
   context.gcinfo = gcinfo
   context.tr = tr
   context.json = json
