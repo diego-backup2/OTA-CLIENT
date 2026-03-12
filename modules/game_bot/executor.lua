@@ -156,6 +156,25 @@ function executeBot(config, storage, tabs, msgCallback, saveConfigCallback, relo
     return g_resources.deleteFile(resolved)
   end
 
+  local settingsProxy = setmetatable({}, { __index = g_settings })
+  settingsProxy.getNumber = function(first, second, ...)
+    local key = first
+    local value = nil
+    if type(first) == "string" then
+      value = g_settings.getNumber(first, second, ...)
+    else
+      key = second
+      value = g_settings.getNumber(second, ...)
+    end
+    if key == "profile" then
+      if type(value) ~= "number" or value < 1 or value > 10 then
+        return 1
+      end
+      return math.floor(value)
+    end
+    return value
+  end
+
   -- websockets, macros, hotkeys, scheduler, icons, callbacks
   context._websockets = websockets
   context._macros = {}
@@ -254,7 +273,7 @@ function executeBot(config, storage, tabs, msgCallback, saveConfigCallback, relo
   context.g_mouse = g_mouse
   context.g_keyboard = g_keyboard
   context.g_things = g_things
-  context.g_settings = g_settings
+  context.g_settings = settingsProxy
   context.g_platform = {
     openUrl = g_platform.openUrl,
     openDir = g_platform.openDir,
